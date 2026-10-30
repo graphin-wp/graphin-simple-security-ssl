@@ -9,6 +9,7 @@ namespace Graphin\SimpleSecurity\Admin;
 
 use Graphin\SimpleSecurity\Crypto;
 use Graphin\SimpleSecurity\Htaccess;
+use Graphin\SimpleSecurity\Login\LoginLimiter;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
 use Graphin\SimpleSecurity\Modules\Hardening;
@@ -206,6 +207,32 @@ class Admin {
 		Settings::set( 'login_2fa_enforce', $enforce );
 		Settings::set( 'login_2fa_grace', $grace );
 		Settings::set( 'login_2fa_remember', empty( $_POST['login_2fa_remember'] ) ? 0 : 1 );
+
+		// Limitation des tentatives.
+		$was_limiting = (bool) Settings::get( 'login_limit_enabled' );
+		$limiting     = empty( $_POST['login_limit_enabled'] ) ? 0 : 1;
+		$whitelist    = array();
+		$raw_list     = isset( $_POST['login_whitelist'] ) ? sanitize_textarea_field( wp_unslash( $_POST['login_whitelist'] ) ) : '';
+		foreach ( preg_split( '/\R/', $raw_list ) as $line ) {
+			$ip = LoginLimiter::normalize_ip( $line );
+			if ( '' !== $ip ) {
+				$whitelist[] = $ip;
+			}
+		}
+		// À l'activation, l'IP de l'administrateur est ajoutée à la liste blanche pour ne pas l'enfermer dehors.
+		if ( $limiting && ! $was_limiting ) {
+			$own = LoginLimiter::client_ip();
+			if ( '' !== $own ) {
+				$whitelist[] = $own;
+			}
+		}
+		Settings::set( 'login_limit_enabled', $limiting );
+		Settings::set( 'login_limit_attempts', max( 1, min( 50, isset( $_POST['login_limit_attempts'] ) ? absint( $_POST['login_limit_attempts'] ) : 5 ) ) );
+		Settings::set( 'login_limit_window', max( 1, min( 1440, isset( $_POST['login_limit_window'] ) ? absint( $_POST['login_limit_window'] ) : 15 ) ) );
+		Settings::set( 'login_limit_block', max( 1, min( 1440, isset( $_POST['login_limit_block'] ) ? absint( $_POST['login_limit_block'] ) : 30 ) ) );
+		Settings::set( 'login_proxy', empty( $_POST['login_proxy'] ) ? 0 : 1 );
+		Settings::set( 'login_whitelist', array_values( array_unique( $whitelist ) ) );
+		LoginLimiter::sync_schedule( (bool) $limiting );
 		Logger::log( 'settings_saved', __( 'Réglages Connexion enregistrés.', 'graphin-simple-security-ssl' ) );
 		wp_safe_redirect(
 			add_query_arg(
