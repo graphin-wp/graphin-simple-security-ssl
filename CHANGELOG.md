@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 0.4.0 (non publiée)
+
+- Module Durcissement : 13 cases, toutes décochées par défaut. XML-RPC, éditeur de fichiers, énumération des utilisateurs, version de WordPress, erreurs de connexion génériques, PHP interdit dans uploads, listing des répertoires, fichiers sensibles, mots de passe d'application, identifiants interdits, pingbacks entrants, test OPcache de Santé du site, alerte d'inscription.
+- Le socle `.htaccess` écrit aussi dans le dossier uploads, et supprime un fichier devenu vide : tout cocher puis tout décocher rend l'état d'origine.
+- La vérification d'écriture de `.htaccess` ne se fait plus que s'il y a quelque chose à changer.
+- Page Durcissement : interrupteurs, badge « Recommandé », snippet Nginx avec bouton « Copier », avis quand Graph'in Hardening est encore actif.
+- Les modules déclarent leurs réglages recommandés (`recommended()`) pour le futur bouton « Appliquer les réglages recommandés ».
+
 ## 0.3.0 (non publiée)
 
 - Module Vulnérabilités : scan des plugins, thèmes et du cœur via WPVulnerability.net, par lots, avec cache de 12 h. Désactivé tant que la case n'est pas cochée.
