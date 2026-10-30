@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 0.2.0 (non publiée)
+
+- Socle commun : écriture sécurisée de `.htaccess` (sauvegarde, bloc en tête de fichier entre marqueurs, test HTTP de l'accueil avant et après, restauration automatique si échec), journal en base (table `gsss_log`, 200 lignes maximum), alertes email (agence, client optionnel, anti-doublon).
+- Réglages généraux : mode serveur, adresses d'alerte, email de test, journal en lecture seule.
+- Le mode secours et la désactivation retirent le bloc `.htaccess`.
+
 ## 0.1.0 (non publiée)
 
 - Squelette : fichier principal, constantes, mode secours `GSSS_SAFE_MODE`, réglages (option `gsss_settings`), classe abstraite de module, menu « Graph'in Security » avec 7 pages vides, Plugin Update Checker 5.6 branché sur le dépôt GitHub.
