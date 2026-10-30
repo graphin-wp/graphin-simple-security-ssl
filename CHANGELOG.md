@@ -1,5 +1,13 @@
 # Journal des modifications
 
+## 0.6.0 (non publiée)
+
+- Module Connexion, bloc limitation des tentatives : compteur par IP, blocage progressif (30 min par défaut, doublé à chaque récidive, plafonné à 24 h), liste blanche préremplie avec l'IP de l'administrateur à l'activation, liste des IP bloquées avec « Débloquer », purge quotidienne.
+- Le contrôle passe après la vérification du mot de passe et avant le second facteur : une IP bloquée est refusée même avec le bon mot de passe, y compris par XML-RPC. Les mauvais codes de double authentification comptent comme des échecs.
+- Derrière un proxy (case à cocher), l'IP est la dernière adresse de X-Forwarded-For, filtre `gsss_client_ip` pour les cas particuliers.
+- Avis quand une autre extension de limitation est active (Login Lockdown, Limit Login Attempts, Loginizer, Wordfence).
+- Les mots de passe d'application en REST ne passent pas par ce contrôle.
+
 ## 0.5.0 (non publiée)
 
 - Module Connexion, bloc double authentification : application TOTP (RFC 6238, vérifié avec les vecteurs de test officiels), code par email de secours, 10 codes de récupération à usage unique, appareil de confiance 30 jours en option.
