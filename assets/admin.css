@@ -1,0 +1,69 @@
+/* Charte Graph'in : variables à remplacer par la charte exacte. */
+.gsss-wrap {
+	--gsss-primary: #1d2327;
+	--gsss-accent: #2271b1;
+	--gsss-bg: #f6f7f7;
+	--gsss-card: #fff;
+	--gsss-border: #dcdcde;
+	--gsss-ok: #00a32a;
+	--gsss-warn: #dba617;
+	--gsss-danger: #d63638;
+}
+
+.gsss-layout {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+	margin-top: 16px;
+}
+
+.gsss-nav {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 220px;
+	background: var(--gsss-card);
+	border: 1px solid var(--gsss-border);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.gsss-nav__item {
+	padding: 12px 16px;
+	color: var(--gsss-primary);
+	text-decoration: none;
+	border-left: 3px solid transparent;
+}
+
+.gsss-nav__item:hover,
+.gsss-nav__item:focus {
+	background: var(--gsss-bg);
+}
+
+.gsss-nav__item.is-active {
+	border-left-color: var(--gsss-accent);
+	font-weight: 600;
+}
+
+.gsss-main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.gsss-card {
+	background: var(--gsss-card);
+	border: 1px solid var(--gsss-border);
+	border-radius: 6px;
+	padding: 16px 20px;
+	margin-bottom: 16px;
+}
+
+@media (max-width: 782px) {
+	.gsss-layout {
+		flex-direction: column;
+	}
+
+	.gsss-nav {
+		flex-basis: auto;
+		width: 100%;
+	}
+}
