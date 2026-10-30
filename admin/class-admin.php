@@ -7,6 +7,7 @@
 
 namespace Graphin\SimpleSecurity\Admin;
 
+use Graphin\SimpleSecurity\Crypto;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
@@ -58,6 +59,7 @@ class Admin {
 		add_action( 'wp_ajax_gsss_send_test_mail', array( $this, 'ajax_send_test_mail' ) );
 		add_action( 'admin_post_gsss_save_vulns', array( $this, 'save_vulns' ) );
 		add_action( 'admin_post_gsss_save_hardening', array( $this, 'save_hardening' ) );
+		add_action( 'admin_post_gsss_save_login', array( $this, 'save_login' ) );
 		add_action( 'wp_ajax_gsss_vuln_scan_step', array( $this, 'ajax_vuln_scan_step' ) );
 	}
 
@@ -175,6 +177,41 @@ class Admin {
 				array(
 					'page'        => 'gsss-settings',
 					'gsss_notice' => $notice,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Enregistre les réglages de connexion (double authentification).
+	 *
+	 * @return void
+	 */
+	public function save_login() {
+		check_admin_referer( 'gsss_save_login' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
+		}
+		$enabled = ! empty( $_POST['login_2fa_enabled'] ) && Crypto::available() ? 1 : 0;
+		$enforce = empty( $_POST['login_2fa_enforce'] ) ? 0 : 1;
+		$grace   = isset( $_POST['login_2fa_grace'] ) ? min( 90, absint( $_POST['login_2fa_grace'] ) ) : 7;
+		if ( $enforce && ! Settings::get( 'login_2fa_enforce' ) ) {
+			update_option( 'gsss_2fa_enforce_since', time(), false );
+		} elseif ( ! $enforce ) {
+			delete_option( 'gsss_2fa_enforce_since' );
+		}
+		Settings::set( 'login_2fa_enabled', $enabled );
+		Settings::set( 'login_2fa_enforce', $enforce );
+		Settings::set( 'login_2fa_grace', $grace );
+		Settings::set( 'login_2fa_remember', empty( $_POST['login_2fa_remember'] ) ? 0 : 1 );
+		Logger::log( 'settings_saved', __( 'Réglages Connexion enregistrés.', 'graphin-simple-security-ssl' ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'        => 'gsss-login',
+					'gsss_notice' => 'saved',
 				),
 				admin_url( 'admin.php' )
 			)
