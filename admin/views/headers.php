@@ -102,7 +102,19 @@ $gsss_messages = array(
 				<span class="gsss-badge gsss-badge--info"><?php echo $gsss_enforce ? esc_html__( 'Appliquée', 'graphin-simple-security-ssl' ) : esc_html__( 'Rapport seulement', 'graphin-simple-security-ssl' ); ?></span>
 				<p class="description"><?php esc_html_e( 'Liste les sources autorisées pour les scripts, styles, images et polices. En rapport seulement, rien n\'est bloqué : les violations sont collectées plus bas pour que vous les autorisiez.', 'graphin-simple-security-ssl' ); ?></p>
 				<p class="description gsss-warning"><?php esc_html_e( 'La politique de départ garde \'unsafe-inline\' pour rester compatible avec WordPress et Enfold : elle protège peu contre l\'injection de script. C\'est une première étape. Envoyée sur le site public seulement, jamais sur l\'administration.', 'graphin-simple-security-ssl' ); ?></p>
-				<p><label><input type="checkbox" name="hdr_csp_upgrade" value="1" <?php checked( (int) $gsss_settings['hdr_csp_upgrade'], 1 ); ?>> <?php esc_html_e( 'Ajouter upgrade-insecure-requests (les ressources http sont chargées en https, sur un site en https)', 'graphin-simple-security-ssl' ); ?></label></p>
+
+			</div>
+		</li>
+
+		<li class="gsss-option">
+			<label class="gsss-switch">
+				<input type="checkbox" name="hdr_csp_upgrade" value="1" <?php checked( (int) $gsss_settings['hdr_csp_upgrade'], 1 ); ?>>
+				<span class="gsss-switch__slider" aria-hidden="true"></span>
+				<span class="screen-reader-text"><?php esc_html_e( 'Upgrade Insecure Requests', 'graphin-simple-security-ssl' ); ?></span>
+			</label>
+			<div class="gsss-option__body">
+				<strong><?php esc_html_e( 'Upgrade Insecure Requests', 'graphin-simple-security-ssl' ); ?></strong>
+				<p class="description"><?php esc_html_e( 'Sur un site en https, le navigateur charge en https les images, scripts et styles encore appelés en http. Indépendant de la CSP ci-dessus. Sans effet sur un site en http.', 'graphin-simple-security-ssl' ); ?></p>
 			</div>
 		</li>
 	</ul>

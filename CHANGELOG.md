@@ -6,7 +6,7 @@
 - En mode Apache, écriture dans .htaccess via mod_headers (sauvegarde, test, rollback). Après l'enregistrement, le plugin vérifie que les en-têtes arrivent vraiment : sinon (mod_headers absent, .htaccess ignoré), PHP les envoie.
 - Content-Security-Policy en rapport seulement par défaut, envoyée par PHP sur le site public seulement. Endpoint REST `gsss/v1/csp-report` (formats csp-report et reports+json, 16 Ko, 30 rapports par minute et par IP, 100 lignes, dédoublonnage), tableau des violations avec « Autoriser », « Vider », passage en mode appliqué refusé tant que des rapports restent.
 - `report-uri` seul (sans `report-to`) : avec `report-to`, Chrome n'utilisait plus `report-uri` et aucun rapport n'arrivait lors des tests.
-- Case `upgrade-insecure-requests`, envoyée appliquée même quand la CSP est en rapport seulement (sinon le navigateur l'ignore).
+- Case « Upgrade Insecure Requests » indépendante de la CSP (comme dans Graph'in Hardening) : en-tête appliqué à part quand la CSP est absente ou en rapport seulement, intégré à la CSP quand elle est appliquée. Site en https seulement.
 - Bouton « Tester les en-têtes » : la page d'accueil est demandée et les en-têtes reçus s'affichent, présents ou absents.
 - Socle : `Htaccess::sync()` mémorise si les règles sont en place (`gsss_htaccess_active`).
 

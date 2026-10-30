@@ -145,7 +145,7 @@ class Headers extends Module {
 				return true;
 			}
 		}
-		return (bool) Settings::get( 'hdr_csp' );
+		return (bool) Settings::get( 'hdr_csp' ) || (bool) Settings::get( 'hdr_csp_upgrade' );
 	}
 
 	/**
@@ -308,13 +308,15 @@ class Headers extends Module {
 				header( $name . ': ' . $value );
 			}
 		}
-		if ( Settings::get( 'hdr_csp' ) && ! is_customize_preview() ) {
-			$enforce = 'enforce' === Settings::get( 'hdr_csp_mode' );
+		$csp     = Settings::get( 'hdr_csp' ) && ! is_customize_preview();
+		$enforce = $csp && 'enforce' === Settings::get( 'hdr_csp_mode' );
+		if ( $csp ) {
 			header( ( $enforce ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only' ) . ': ' . self::csp_value( $enforce ), false );
-			// En rapport seulement, upgrade-insecure-requests est ignoré : on l'envoie à part, appliqué.
-			if ( ! $enforce && Settings::get( 'hdr_csp_upgrade' ) && is_ssl() ) {
-				header( 'Content-Security-Policy: upgrade-insecure-requests', false );
-			}
+		}
+		// upgrade-insecure-requests marche seul (comme dans Graph'in Hardening). Dans une CSP en rapport
+		// seulement il serait ignoré : il part alors dans un en-tête appliqué à part.
+		if ( ! $enforce && Settings::get( 'hdr_csp_upgrade' ) && is_ssl() ) {
+			header( 'Content-Security-Policy: upgrade-insecure-requests', false );
 		}
 	}
 
