@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 0.8.0 (non publiée)
+
+- Module En-têtes de sécurité : X-Content-Type-Options, X-Frame-Options, Referrer-Policy (valeur au choix), Permissions-Policy (une case par fonctionnalité), Cross-Origin-Opener-Policy, X-XSS-Protection à 0. Tout est décoché par défaut.
+- En mode Apache, écriture dans .htaccess via mod_headers (sauvegarde, test, rollback). Après l'enregistrement, le plugin vérifie que les en-têtes arrivent vraiment : sinon (mod_headers absent, .htaccess ignoré), PHP les envoie.
+- Content-Security-Policy en rapport seulement par défaut, envoyée par PHP sur le site public seulement. Endpoint REST `gsss/v1/csp-report` (formats csp-report et reports+json, 16 Ko, 30 rapports par minute et par IP, 100 lignes, dédoublonnage), tableau des violations avec « Autoriser », « Vider », passage en mode appliqué refusé tant que des rapports restent.
+- `report-uri` seul (sans `report-to`) : avec `report-to`, Chrome n'utilisait plus `report-uri` et aucun rapport n'arrivait lors des tests.
+- Case `upgrade-insecure-requests`, envoyée appliquée même quand la CSP est en rapport seulement (sinon le navigateur l'ignore).
+- Bouton « Tester les en-têtes » : la page d'accueil est demandée et les en-têtes reçus s'affichent, présents ou absents.
+- Socle : `Htaccess::sync()` mémorise si les règles sont en place (`gsss_htaccess_active`).
+
 ## 0.7.0 (non publiée)
 
 - Module Connexion, bloc adresse de connexion personnalisée : le slug sert la page de connexion, wp-login.php et /wp-admin répondent 404 aux visiteurs non connectés (admin-ajax.php, admin-post.php, upgrade.php, install.php, repair.php, load-styles.php, load-scripts.php et l'action postpass restent accessibles).
