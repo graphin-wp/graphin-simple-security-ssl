@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 0.7.0 (non publiée)
+
+- Module Connexion, bloc adresse de connexion personnalisée : le slug sert la page de connexion, wp-login.php et /wp-admin répondent 404 aux visiteurs non connectés (admin-ajax.php, admin-post.php, upgrade.php, install.php, repair.php, load-styles.php, load-scripts.php et l'action postpass restent accessibles).
+- Les liens de connexion, de déconnexion, de mot de passe perdu, les emails de réinitialisation, le formulaire de la double authentification et les redirections passent par le slug.
+- Les alias /login, /admin et /dashboard de WordPress sont neutralisés tant que le bloc est actif.
+- Slug validé (3 à 40 caractères, mots réservés et contenus existants refusés), email de la nouvelle adresse à l'agence et à l'administrateur du site, rappel de la procédure de récupération.
+- Aucune règle serveur : la désactivation du plugin, le mode secours ou le renommage du dossier rétablissent wp-login.php.
+- La page 404 est un message neutre (pas le gabarit du thème), pour ne pas dépendre du thème à ce stade.
+
 ## 0.6.0 (non publiée)
 
 - Module Connexion, bloc limitation des tentatives : compteur par IP, blocage progressif (30 min par défaut, doublé à chaque récidive, plafonné à 24 h), liste blanche préremplie avec l'IP de l'administrateur à l'activation, liste des IP bloquées avec « Débloquer », purge quotidienne.
