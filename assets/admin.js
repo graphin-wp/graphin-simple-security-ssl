@@ -45,6 +45,56 @@
 		} );
 	}
 
+	var testButton = document.getElementById( 'gsss-test-headers' );
+	var testStatus = document.getElementById( 'gsss-test-headers-status' );
+	var testTable = document.getElementById( 'gsss-test-headers-table' );
+	if ( testButton && testStatus && testTable ) {
+		testButton.addEventListener( 'click', function () {
+			testButton.disabled = true;
+			testStatus.textContent = cfg.i18n.sending;
+			post( 'gsss_test_headers' )
+				.then( function ( json ) {
+					if ( ! json || ! json.success ) {
+						testStatus.textContent = json && json.data && json.data.message ? json.data.message : cfg.i18n.error;
+						return;
+					}
+					var body = testTable.querySelector( 'tbody' );
+					while ( body.firstChild ) {
+						body.removeChild( body.firstChild );
+					}
+					json.data.rows.forEach( function ( row ) {
+						var tr = document.createElement( 'tr' );
+						var present = null !== row.value;
+						[ row.name, present ? cfg.i18n.present : cfg.i18n.absent, present ? row.value : '' ].forEach( function ( text, index ) {
+							var td = document.createElement( 'td' );
+							td.textContent = text;
+							if ( 1 === index ) {
+								td.className = present ? 'gsss-ok' : 'gsss-ko';
+							}
+							tr.appendChild( td );
+						} );
+						body.appendChild( tr );
+					} );
+					testTable.classList.remove( 'gsss-hidden' );
+					testStatus.textContent = '';
+				} )
+				.catch( function () {
+					testStatus.textContent = cfg.i18n.error;
+				} )
+				.then( function () {
+					testButton.disabled = false;
+				} );
+		} );
+	}
+
+	Array.prototype.forEach.call( document.querySelectorAll( '[data-gsss-confirm-msg]' ), function ( form ) {
+		form.addEventListener( 'submit', function ( event ) {
+			if ( ! window.confirm( form.getAttribute( 'data-gsss-confirm-msg' ) ) ) {
+				event.preventDefault();
+			}
+		} );
+	} );
+
 	var scanButton = document.getElementById( 'gsss-vuln-scan' );
 	var scanOutput = document.getElementById( 'gsss-vuln-scan-result' );
 	if ( scanButton && scanOutput ) {

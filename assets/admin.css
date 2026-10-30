@@ -185,3 +185,36 @@
 	outline: 2px solid var(--gsss-accent);
 	outline-offset: 2px;
 }
+
+.gsss-hidden {
+	display: none;
+}
+
+.gsss-ok {
+	color: var(--gsss-ok);
+	font-weight: 600;
+}
+
+.gsss-ko {
+	color: var(--gsss-danger);
+	font-weight: 600;
+}
+
+.gsss-inline-check {
+	display: inline-block;
+	margin: 0 16px 6px 0;
+}
+
+.gsss-inline-form {
+	display: inline-block;
+	margin-right: 8px;
+}
+
+.gsss-code {
+	margin: 0 0 16px;
+	padding: 12px;
+	overflow-x: auto;
+	background: var(--gsss-bg);
+	border: 1px solid var(--gsss-border);
+	border-radius: 4px;
+}

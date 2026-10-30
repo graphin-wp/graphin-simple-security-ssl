@@ -8,12 +8,14 @@
 namespace Graphin\SimpleSecurity\Admin;
 
 use Graphin\SimpleSecurity\Crypto;
+use Graphin\SimpleSecurity\CspReports;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Login\LoginLimiter;
 use Graphin\SimpleSecurity\Login\LoginUrl;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
 use Graphin\SimpleSecurity\Modules\Hardening;
+use Graphin\SimpleSecurity\Modules\Headers;
 use Graphin\SimpleSecurity\Modules\Vulnerabilities;
 use Graphin\SimpleSecurity\Settings;
 use Graphin\SimpleSecurity\VulnScanner;
@@ -62,6 +64,11 @@ class Admin {
 		add_action( 'admin_post_gsss_save_vulns', array( $this, 'save_vulns' ) );
 		add_action( 'admin_post_gsss_save_hardening', array( $this, 'save_hardening' ) );
 		add_action( 'admin_post_gsss_save_login', array( $this, 'save_login' ) );
+		add_action( 'admin_post_gsss_save_headers', array( $this, 'save_headers' ) );
+		add_action( 'admin_post_gsss_csp_allow', array( $this, 'csp_allow' ) );
+		add_action( 'admin_post_gsss_csp_clear', array( $this, 'csp_clear' ) );
+		add_action( 'admin_post_gsss_csp_mode', array( $this, 'csp_mode' ) );
+		add_action( 'wp_ajax_gsss_test_headers', array( $this, 'ajax_test_headers' ) );
 		add_action( 'wp_ajax_gsss_vuln_scan_step', array( $this, 'ajax_vuln_scan_step' ) );
 	}
 
@@ -132,6 +139,8 @@ class Admin {
 					'error'      => __( 'Erreur de communication avec le site.', 'graphin-simple-security-ssl' ),
 					/* translators: 1: composants analysés, 2: total */
 					'scanning'   => __( 'Analyse : %1$s / %2$s', 'graphin-simple-security-ssl' ),
+					'present'    => __( 'Présent', 'graphin-simple-security-ssl' ),
+					'absent'     => __( 'Absent', 'graphin-simple-security-ssl' ),
 					'copied'     => __( 'Copié.', 'graphin-simple-security-ssl' ),
 					'copyFailed' => __( 'Copie impossible : sélectionnez le texte à la main.', 'graphin-simple-security-ssl' ),
 					'scanDone'   => __( 'Analyse terminée.', 'graphin-simple-security-ssl' ),
@@ -184,6 +193,142 @@ class Admin {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Droits communs aux actions du module En-têtes (le nonce est vérifié par chaque action).
+	 *
+	 * @return void
+	 */
+	private function headers_guard() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
+		}
+	}
+
+	/**
+	 * Retour vers la page En-têtes avec un message.
+	 *
+	 * @param string $notice Code du message.
+	 * @return void
+	 */
+	private function headers_back( $notice ) {
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'        => 'gsss-headers',
+					'gsss_notice' => $notice,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Enregistre les cases du module En-têtes, puis aligne .htaccess.
+	 *
+	 * @return void
+	 */
+	public function save_headers() {
+		check_admin_referer( 'gsss_save_headers' );
+		$this->headers_guard();
+		foreach ( array( 'hdr_nosniff', 'hdr_xfo', 'hdr_referrer', 'hdr_permissions', 'hdr_coop', 'hdr_xss', 'hdr_csp', 'hdr_csp_upgrade' ) as $key ) {
+			Settings::set( $key, empty( $_POST[ $key ] ) ? 0 : 1 );
+		}
+		$referrer = isset( $_POST['hdr_referrer_value'] ) ? sanitize_text_field( wp_unslash( $_POST['hdr_referrer_value'] ) ) : '';
+		Settings::set( 'hdr_referrer_value', in_array( $referrer, Headers::referrer_values(), true ) ? $referrer : 'strict-origin-when-cross-origin' );
+		$features = isset( $_POST['hdr_perm_features'] ) && is_array( $_POST['hdr_perm_features'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['hdr_perm_features'] ) ) : array();
+		Settings::set( 'hdr_perm_features', array_values( array_intersect( Headers::features(), $features ) ) );
+		Logger::log( 'settings_saved', __( 'Réglages En-têtes enregistrés.', 'graphin-simple-security-ssl' ) );
+		if ( is_wp_error( Htaccess::sync() ) ) {
+			$this->headers_back( 'htaccess_error' );
+		}
+		$via_apache = Headers::verify_delivery();
+		$this->headers_back( ( ! $via_apache && 'apache' === Settings::get( 'server_mode' ) && ! empty( Headers::simple_headers() ) ) ? 'headers_php' : 'saved' );
+	}
+
+	/**
+	 * Autorise la source d'un rapport CSP.
+	 *
+	 * @return void
+	 */
+	public function csp_allow() {
+		check_admin_referer( 'gsss_csp_allow' );
+		$this->headers_guard();
+		$id     = isset( $_POST['report'] ) ? preg_replace( '/[^a-f0-9]/', '', sanitize_text_field( wp_unslash( $_POST['report'] ) ) ) : '';
+		$result = CspReports::allow( $id );
+		if ( true === $result ) {
+			Logger::log( 'csp_allowed', __( 'Source ajoutée à la politique CSP.', 'graphin-simple-security-ssl' ), array( 'report' => $id ), 'warning' );
+		}
+		$this->headers_back( true === $result ? 'csp_allowed' : 'csp_' . $result );
+	}
+
+	/**
+	 * Vide la liste des rapports CSP.
+	 *
+	 * @return void
+	 */
+	public function csp_clear() {
+		check_admin_referer( 'gsss_csp_clear' );
+		$this->headers_guard();
+		CspReports::clear();
+		$this->headers_back( 'csp_cleared' );
+	}
+
+	/**
+	 * Bascule la CSP entre rapport seulement et appliquée. L'application exige une liste de rapports vide.
+	 *
+	 * @return void
+	 */
+	public function csp_mode() {
+		check_admin_referer( 'gsss_csp_mode' );
+		$this->headers_guard();
+		$mode = isset( $_POST['mode'] ) && 'enforce' === $_POST['mode'] ? 'enforce' : 'report';
+		if ( 'enforce' === $mode && ! empty( CspReports::all() ) ) {
+			$this->headers_back( 'csp_pending' );
+		}
+		Settings::set( 'hdr_csp_mode', $mode );
+		Logger::log( 'csp_mode', 'enforce' === $mode ? __( 'CSP appliquée.', 'graphin-simple-security-ssl' ) : __( 'CSP en rapport seulement.', 'graphin-simple-security-ssl' ), array(), 'warning' );
+		$this->headers_back( 'csp_mode_' . $mode );
+	}
+
+	/**
+	 * Demande la page d'accueil et renvoie les en-têtes reçus (AJAX).
+	 *
+	 * @return void
+	 */
+	public function ajax_test_headers() {
+		check_ajax_referer( 'gsss_admin', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Accès refusé.', 'graphin-simple-security-ssl' ) ), 403 );
+		}
+		$response = wp_remote_get(
+			add_query_arg( 'gsss_hdr_test', (string) time(), home_url( '/' ) ),
+			array(
+				'timeout'     => 10,
+				'redirection' => 3,
+				'user-agent'  => 'Graphin-Simple-Security/' . GSSS_VERSION,
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_error( array( 'message' => __( 'Le site n\'a pas pu se joindre lui-même.', 'graphin-simple-security-ssl' ) ) );
+		}
+		$received = wp_remote_retrieve_headers( $response );
+		$rows     = array();
+		foreach ( array( 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy', 'Cross-Origin-Opener-Policy', 'X-XSS-Protection', 'Content-Security-Policy', 'Content-Security-Policy-Report-Only', 'Strict-Transport-Security' ) as $name ) {
+			$value  = isset( $received[ $name ] ) ? $received[ $name ] : null;
+			$rows[] = array(
+				'name'  => $name,
+				'value' => is_array( $value ) ? implode( ' | ', $value ) : $value,
+			);
+		}
+		wp_send_json_success(
+			array(
+				'status' => (int) wp_remote_retrieve_response_code( $response ),
+				'rows'   => $rows,
+			)
+		);
 	}
 
 	/**
