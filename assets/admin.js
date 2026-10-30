@@ -78,4 +78,29 @@
 			step( true );
 		} );
 	}
+
+	Array.prototype.forEach.call( document.querySelectorAll( '[data-gsss-copy]' ), function ( button ) {
+		button.addEventListener( 'click', function () {
+			var source = document.getElementById( button.getAttribute( 'data-gsss-copy' ) );
+			var result = button.parentNode.querySelector( '.gsss-copy-result' );
+			if ( ! source ) {
+				return;
+			}
+			var done = function ( ok ) {
+				if ( result ) {
+					result.textContent = ok ? cfg.i18n.copied : cfg.i18n.copyFailed;
+				}
+			};
+			source.select();
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( source.value ).then( function () {
+					done( true );
+				}, function () {
+					done( false );
+				} );
+			} else {
+				done( document.execCommand( 'copy' ) );
+			}
+		} );
+	} );
 }() );

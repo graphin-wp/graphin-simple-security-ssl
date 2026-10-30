@@ -10,6 +10,7 @@ namespace Graphin\SimpleSecurity\Admin;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
+use Graphin\SimpleSecurity\Modules\Hardening;
 use Graphin\SimpleSecurity\Modules\Vulnerabilities;
 use Graphin\SimpleSecurity\Settings;
 use Graphin\SimpleSecurity\VulnScanner;
@@ -56,6 +57,7 @@ class Admin {
 		add_action( 'admin_post_gsss_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'wp_ajax_gsss_send_test_mail', array( $this, 'ajax_send_test_mail' ) );
 		add_action( 'admin_post_gsss_save_vulns', array( $this, 'save_vulns' ) );
+		add_action( 'admin_post_gsss_save_hardening', array( $this, 'save_hardening' ) );
 		add_action( 'wp_ajax_gsss_vuln_scan_step', array( $this, 'ajax_vuln_scan_step' ) );
 	}
 
@@ -122,11 +124,13 @@ class Admin {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'gsss_admin' ),
 				'i18n'    => array(
-					'sending'  => __( 'Envoi en cours…', 'graphin-simple-security-ssl' ),
-					'error'    => __( 'Erreur de communication avec le site.', 'graphin-simple-security-ssl' ),
+					'sending'    => __( 'Envoi en cours…', 'graphin-simple-security-ssl' ),
+					'error'      => __( 'Erreur de communication avec le site.', 'graphin-simple-security-ssl' ),
 					/* translators: 1: composants analysés, 2: total */
-					'scanning' => __( 'Analyse : %1$s / %2$s', 'graphin-simple-security-ssl' ),
-					'scanDone' => __( 'Analyse terminée.', 'graphin-simple-security-ssl' ),
+					'scanning'   => __( 'Analyse : %1$s / %2$s', 'graphin-simple-security-ssl' ),
+					'copied'     => __( 'Copié.', 'graphin-simple-security-ssl' ),
+					'copyFailed' => __( 'Copie impossible : sélectionnez le texte à la main.', 'graphin-simple-security-ssl' ),
+					'scanDone'   => __( 'Analyse terminée.', 'graphin-simple-security-ssl' ),
 				),
 			)
 		);
@@ -170,6 +174,33 @@ class Admin {
 			add_query_arg(
 				array(
 					'page'        => 'gsss-settings',
+					'gsss_notice' => $notice,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Enregistre les cases du module Durcissement, puis aligne les fichiers .htaccess.
+	 *
+	 * @return void
+	 */
+	public function save_hardening() {
+		check_admin_referer( 'gsss_save_hardening' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
+		}
+		foreach ( array_keys( Hardening::options() ) as $key ) {
+			Settings::set( $key, empty( $_POST[ $key ] ) ? 0 : 1 );
+		}
+		Logger::log( 'settings_saved', __( 'Réglages Durcissement enregistrés.', 'graphin-simple-security-ssl' ) );
+		$notice = is_wp_error( Htaccess::sync() ) ? 'htaccess_error' : 'saved';
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'        => 'gsss-hardening',
 					'gsss_notice' => $notice,
 				),
 				admin_url( 'admin.php' )
