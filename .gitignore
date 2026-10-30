@@ -1,0 +1,6 @@
+/vendor/*
+!/vendor/plugin-update-checker/
+/composer.lock
+/dev/
+.DS_Store
+*.zip

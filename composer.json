@@ -1,0 +1,19 @@
+{
+	"name": "graphin-wp/graphin-simple-security-ssl",
+	"description": "Sécurité WordPress sobre pour les sites clients Graph'in.",
+	"license": "GPL-2.0-or-later",
+	"type": "wordpress-plugin",
+	"require": {
+		"php": ">=7.4"
+	},
+	"require-dev": {
+		"wp-coding-standards/wpcs": "^3.0",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpcompatibility/phpcompatibility-wp": "^2.1"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	}
+}
