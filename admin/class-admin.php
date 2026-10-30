@@ -10,7 +10,9 @@ namespace Graphin\SimpleSecurity\Admin;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
+use Graphin\SimpleSecurity\Modules\Vulnerabilities;
 use Graphin\SimpleSecurity\Settings;
+use Graphin\SimpleSecurity\VulnScanner;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -53,6 +55,8 @@ class Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_gsss_save_settings', array( $this, 'save_settings' ) );
 		add_action( 'wp_ajax_gsss_send_test_mail', array( $this, 'ajax_send_test_mail' ) );
+		add_action( 'admin_post_gsss_save_vulns', array( $this, 'save_vulns' ) );
+		add_action( 'wp_ajax_gsss_vuln_scan_step', array( $this, 'ajax_vuln_scan_step' ) );
 	}
 
 	/**
@@ -118,8 +122,11 @@ class Admin {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'gsss_admin' ),
 				'i18n'    => array(
-					'sending' => __( 'Envoi en cours…', 'graphin-simple-security-ssl' ),
-					'error'   => __( 'Erreur de communication avec le site.', 'graphin-simple-security-ssl' ),
+					'sending'  => __( 'Envoi en cours…', 'graphin-simple-security-ssl' ),
+					'error'    => __( 'Erreur de communication avec le site.', 'graphin-simple-security-ssl' ),
+					/* translators: 1: composants analysés, 2: total */
+					'scanning' => __( 'Analyse : %1$s / %2$s', 'graphin-simple-security-ssl' ),
+					'scanDone' => __( 'Analyse terminée.', 'graphin-simple-security-ssl' ),
 				),
 			)
 		);
@@ -169,6 +176,58 @@ class Admin {
 			)
 		);
 		exit;
+	}
+
+	/**
+	 * Enregistre les réglages du module Vulnérabilités.
+	 *
+	 * @return void
+	 */
+	public function save_vulns() {
+		check_admin_referer( 'gsss_save_vulns' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
+		}
+		$severity = isset( $_POST['vuln_min_severity'] ) ? sanitize_key( wp_unslash( $_POST['vuln_min_severity'] ) ) : 'medium';
+		if ( ! in_array( $severity, array( 'low', 'medium', 'high', 'critical' ), true ) ) {
+			$severity = 'medium';
+		}
+		$enabled = empty( $_POST['vuln_enabled'] ) ? 0 : 1;
+		Settings::set( 'vuln_enabled', $enabled );
+		Settings::set( 'vuln_min_severity', $severity );
+		Settings::set( 'vuln_auto_update', empty( $_POST['vuln_auto_update'] ) ? 0 : 1 );
+		Settings::set( 'vuln_flag_closed', empty( $_POST['vuln_flag_closed'] ) ? 0 : 1 );
+		Vulnerabilities::sync_schedule( (bool) $enabled );
+		Logger::log( 'settings_saved', __( 'Réglages Vulnérabilités enregistrés.', 'graphin-simple-security-ssl' ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'        => 'gsss-vulns',
+					'gsss_notice' => 'saved',
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Traite un lot du scan (AJAX, nonce, droits). Le scan doit être activé.
+	 *
+	 * @return void
+	 */
+	public function ajax_vuln_scan_step() {
+		check_ajax_referer( 'gsss_admin', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Accès refusé.', 'graphin-simple-security-ssl' ) ), 403 );
+		}
+		if ( ! Settings::get( 'vuln_enabled' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Cochez d\'abord « Activer le scan » et enregistrez.', 'graphin-simple-security-ssl' ) ) );
+		}
+		if ( ! empty( $_POST['start'] ) ) {
+			VulnScanner::reset();
+		}
+		wp_send_json_success( VulnScanner::step() );
 	}
 
 	/**

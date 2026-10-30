@@ -67,3 +67,29 @@
 		width: 100%;
 	}
 }
+
+.gsss-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	background: var(--gsss-warn);
+}
+
+.gsss-badge--critical {
+	background: var(--gsss-danger);
+}
+
+.gsss-badge--high {
+	background: #d54e21;
+}
+
+.gsss-badge--medium {
+	background: #996800;
+}
+
+.gsss-badge--low {
+	background: #50575e;
+}
