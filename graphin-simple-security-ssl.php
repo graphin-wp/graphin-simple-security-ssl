@@ -3,7 +3,7 @@
  * Plugin Name: Graph'in Simple Security SSL
  * Plugin URI: https://github.com/graphin-wp/graphin-simple-security-ssl
  * Description: Sécurité WordPress sobre pour les sites clients Graph'in : SSL, en-têtes, vulnérabilités, durcissement, connexion et 2FA. Aucune option n'agit tant qu'elle n'est pas cochée.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Graph'in
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GSSS_VERSION', '0.3.0' );
+define( 'GSSS_VERSION', '0.4.0' );
 define( 'GSSS_FILE', __FILE__ );
 define( 'GSSS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GSSS_URL', plugin_dir_url( __FILE__ ) );
@@ -48,6 +48,7 @@ require_once GSSS_PATH . 'includes/class-mailer.php';
 require_once GSSS_PATH . 'includes/class-vuln-scanner.php';
 require_once GSSS_PATH . 'includes/modules/class-module.php';
 require_once GSSS_PATH . 'includes/modules/class-vulnerabilities.php';
+require_once GSSS_PATH . 'includes/modules/class-hardening.php';
 require_once GSSS_PATH . 'admin/class-admin.php';
 
 register_activation_hook( __FILE__, array( '\Graphin\SimpleSecurity\Plugin', 'activate' ) );

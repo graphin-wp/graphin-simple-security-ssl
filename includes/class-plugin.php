@@ -102,7 +102,13 @@ class Plugin {
 		 *
 		 * @param string[] $classes Classes qui étendent Modules\Module.
 		 */
-		$classes = apply_filters( 'gsss_module_classes', array( __NAMESPACE__ . '\Modules\Vulnerabilities' ) );
+		$classes = apply_filters(
+			'gsss_module_classes',
+			array(
+				__NAMESPACE__ . '\Modules\Vulnerabilities',
+				__NAMESPACE__ . '\Modules\Hardening',
+			)
+		);
 		foreach ( $classes as $class ) {
 			if ( is_subclass_of( $class, '\Graphin\SimpleSecurity\Modules\Module' ) ) {
 				$module                         = new $class();
