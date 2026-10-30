@@ -47,7 +47,9 @@ class Plugin {
 	 */
 	public function boot() {
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_action( 'plugins_loaded', array( __NAMESPACE__ . '\Logger', 'maybe_upgrade' ), 5 );
 		add_action( 'plugins_loaded', array( $this, 'load_modules' ), 20 );
+		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Htaccess', 'remove_all' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GSSS_FILE ), array( $this, 'action_links' ) );
 
 		( new Admin\Admin() )->register_hooks();
@@ -61,6 +63,8 @@ class Plugin {
 	 */
 	public static function boot_safe_mode() {
 		add_action( 'admin_notices', array( __CLASS__, 'safe_mode_notice' ) );
+		// Le mode secours retire aussi le bloc .htaccess, sans toucher à la base de données.
+		add_action( 'admin_init', array( __NAMESPACE__ . '\Htaccess', 'remove_if_present' ) );
 	}
 
 	/**
@@ -152,6 +156,7 @@ class Plugin {
 	 */
 	public static function activate() {
 		update_option( 'gsss_version', GSSS_VERSION, false );
+		Logger::install();
 	}
 
 	/**
