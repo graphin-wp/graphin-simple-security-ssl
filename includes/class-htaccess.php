@@ -80,36 +80,79 @@ class Htaccess {
 	}
 
 	/**
+	 * Chemin du .htaccess du dossier uploads, ou chaîne vide si le dossier est inconnu.
+	 *
+	 * @return string
+	 */
+	public static function uploads_path() {
+		$uploads = wp_get_upload_dir();
+		return empty( $uploads['basedir'] ) ? '' : $uploads['basedir'] . '/.htaccess';
+	}
+
+	/**
 	 * Règles de tous les modules actifs, en mode Apache seulement.
 	 *
+	 * @param string $method Méthode du module à appeler : htaccess_rules ou uploads_htaccess_rules.
 	 * @return string[]
 	 */
-	public static function collect_rules() {
+	private static function gather( $method ) {
 		$lines = array();
 		if ( 'apache' === Settings::get( 'server_mode' ) ) {
 			foreach ( Plugin::instance()->modules() as $module ) {
-				$rules = $module->is_enabled() ? $module->htaccess_rules() : array();
+				$rules = $module->is_enabled() ? $module->$method() : array();
 				if ( ! empty( $rules ) ) {
 					$lines[] = '# ' . $module->id();
 					$lines   = array_merge( $lines, $rules );
 				}
 			}
 		}
+		return $lines;
+	}
+
+	/**
+	 * Règles du .htaccess principal.
+	 *
+	 * @return string[]
+	 */
+	public static function collect_rules() {
 		/**
 		 * Règles supplémentaires pour le .htaccess principal.
 		 *
 		 * @param string[] $lines Lignes.
 		 */
-		return array_values( apply_filters( 'gsss_htaccess_rules', $lines ) );
+		return array_values( apply_filters( 'gsss_htaccess_rules', self::gather( 'htaccess_rules' ) ) );
 	}
 
 	/**
-	 * Aligne le .htaccess principal sur les règles des modules actifs.
+	 * Règles du .htaccess du dossier uploads.
+	 *
+	 * @return string[]
+	 */
+	public static function collect_uploads_rules() {
+		/**
+		 * Règles supplémentaires pour le .htaccess du dossier uploads.
+		 *
+		 * @param string[] $lines Lignes.
+		 */
+		return array_values( apply_filters( 'gsss_uploads_htaccess_rules', self::gather( 'uploads_htaccess_rules' ) ) );
+	}
+
+	/**
+	 * Aligne le .htaccess principal et celui d'uploads sur les règles des modules actifs.
 	 *
 	 * @return true|\WP_Error
 	 */
 	public static function sync() {
-		return self::apply( self::path(), self::collect_rules() );
+		$result = self::apply( self::path(), self::collect_rules() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$uploads = self::uploads_path();
+		$lines   = self::collect_uploads_rules();
+		if ( '' !== $uploads && is_dir( dirname( $uploads ) ) && ( ! empty( $lines ) || file_exists( $uploads ) ) ) {
+			return self::apply( $uploads, $lines );
+		}
+		return true;
 	}
 
 	/**
@@ -118,11 +161,16 @@ class Htaccess {
 	 * @return true|\WP_Error
 	 */
 	public static function remove_all() {
-		$file = self::path();
-		if ( ! file_exists( $file ) ) {
-			return true;
+		$result = true;
+		foreach ( array( self::path(), self::uploads_path() ) as $file ) {
+			if ( '' !== $file && file_exists( $file ) ) {
+				$outcome = self::apply( $file, array(), false );
+				if ( is_wp_error( $outcome ) ) {
+					$result = $outcome;
+				}
+			}
 		}
-		return self::apply( $file, array(), false );
+		return $result;
 	}
 
 	/**
@@ -134,9 +182,10 @@ class Htaccess {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$file = self::path();
-		if ( file_exists( $file ) && is_readable( $file ) && self::has_block( (string) file_get_contents( $file ) ) ) {
-			self::apply( $file, array(), false );
+		foreach ( array( self::path(), self::uploads_path() ) as $file ) {
+			if ( '' !== $file && file_exists( $file ) && is_readable( $file ) && self::has_block( (string) file_get_contents( $file ) ) ) {
+				self::apply( $file, array(), false );
+			}
 		}
 	}
 
@@ -149,10 +198,6 @@ class Htaccess {
 	 * @return true|\WP_Error
 	 */
 	public static function apply( $file, $lines, $test = true ) {
-		if ( ! self::is_writable( $file ) ) {
-			return new \WP_Error( 'gsss_htaccess_not_writable', __( 'Le fichier .htaccess n\'est pas inscriptible.', 'graphin-simple-security-ssl' ) );
-		}
-
 		$existed  = file_exists( $file );
 		$original = $existed ? file_get_contents( $file ) : '';
 		if ( false === $original ) {
@@ -163,6 +208,9 @@ class Htaccess {
 		$new      = empty( $lines ) ? $stripped : self::build_block( $lines ) . $stripped;
 		if ( $new === $original ) {
 			return true;
+		}
+		if ( ! self::is_writable( $file ) ) {
+			return new \WP_Error( 'gsss_htaccess_not_writable', __( 'Le fichier .htaccess n\'est pas inscriptible.', 'graphin-simple-security-ssl' ) );
 		}
 
 		$probe = ( $test && ! empty( $lines ) );
@@ -196,7 +244,7 @@ class Htaccess {
 			}
 		}
 
-		if ( '' === $new && ! $existed ) {
+		if ( '' === $new ) {
 			wp_delete_file( $file );
 		}
 		self::log( empty( $lines ) ? 'htaccess_removed' : 'htaccess_written', empty( $lines ) ? 'Bloc .htaccess retiré.' : 'Bloc .htaccess écrit.' );

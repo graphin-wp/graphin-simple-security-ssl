@@ -45,6 +45,24 @@ abstract class Module {
 	}
 
 	/**
+	 * Lignes à écrire dans le .htaccess du dossier uploads (mode Apache). Vide par défaut.
+	 *
+	 * @return string[]
+	 */
+	public function uploads_htaccess_rules() {
+		return array();
+	}
+
+	/**
+	 * Réglages cochés par « Appliquer les réglages recommandés » (clé => valeur).
+	 *
+	 * @return array
+	 */
+	public function recommended() {
+		return array();
+	}
+
+	/**
 	 * Snippet Nginx à copier pour les règles impossibles en PHP. Vide par défaut.
 	 *
 	 * @return string
