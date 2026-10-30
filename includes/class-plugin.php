@@ -108,6 +108,7 @@ class Plugin {
 			array(
 				__NAMESPACE__ . '\Modules\Vulnerabilities',
 				__NAMESPACE__ . '\Modules\Hardening',
+				__NAMESPACE__ . '\Modules\Headers',
 				__NAMESPACE__ . '\Modules\Login',
 			)
 		);
