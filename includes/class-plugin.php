@@ -51,6 +51,7 @@ class Plugin {
 		add_action( 'plugins_loaded', array( $this, 'load_modules' ), 20 );
 		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Htaccess', 'remove_all' ) );
 		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Modules\Vulnerabilities', 'clear_schedule' ) );
+		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Login\LoginLimiter', 'clear_schedule' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GSSS_FILE ), array( $this, 'action_links' ) );
 
 		( new Admin\Admin() )->register_hooks();
