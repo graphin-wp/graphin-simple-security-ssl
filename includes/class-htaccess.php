@@ -144,6 +144,8 @@ class Htaccess {
 	 */
 	public static function sync() {
 		$result = self::apply( self::path(), self::collect_rules() );
+		// Mémorise si les règles sont en place : les modules passent en PHP quand ce n'est pas le cas.
+		update_option( 'gsss_htaccess_active', is_wp_error( $result ) ? 0 : 1, true );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
