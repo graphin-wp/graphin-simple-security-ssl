@@ -1,5 +1,14 @@
 # Journal des modifications
 
+## 0.5.0 (non publiée)
+
+- Module Connexion, bloc double authentification : application TOTP (RFC 6238, vérifié avec les vecteurs de test officiels), code par email de secours, 10 codes de récupération à usage unique, appareil de confiance 30 jours en option.
+- Le cookie de connexion n'est posé qu'après le second facteur. Un compte protégé ne s'ouvre que depuis la page de connexion WordPress : wp_signon et XML-RPC refusent le mot de passe seul.
+- Secrets chiffrés en AES-256-GCM avec une clé dérivée des salts WordPress.
+- Activation dans une page dédiée avec QR code généré en local (qrcode-generator 1.4.4, MIT), section dans le profil, réinitialisation par un administrateur avec email à l'utilisateur.
+- Option « Imposer la 2FA aux administrateurs » avec délai de grâce, rappel dans l'administration, puis renvoi vers la configuration.
+- Limitation des tentatives et URL personnalisée : blocs suivants du module, pas encore codés.
+
 ## 0.4.0 (non publiée)
 
 - Module Durcissement : 13 cases, toutes décochées par défaut. XML-RPC, éditeur de fichiers, énumération des utilisateurs, version de WordPress, erreurs de connexion génériques, PHP interdit dans uploads, listing des répertoires, fichiers sensibles, mots de passe d'application, identifiants interdits, pingbacks entrants, test OPcache de Santé du site, alerte d'inscription.
