@@ -50,6 +50,7 @@ class Plugin {
 		add_action( 'plugins_loaded', array( __NAMESPACE__ . '\Logger', 'maybe_upgrade' ), 5 );
 		add_action( 'plugins_loaded', array( $this, 'load_modules' ), 20 );
 		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Htaccess', 'remove_all' ) );
+		add_action( 'gsss_deactivate', array( __NAMESPACE__ . '\Modules\Vulnerabilities', 'clear_schedule' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( GSSS_FILE ), array( $this, 'action_links' ) );
 
 		( new Admin\Admin() )->register_hooks();
@@ -101,7 +102,7 @@ class Plugin {
 		 *
 		 * @param string[] $classes Classes qui étendent Modules\Module.
 		 */
-		$classes = apply_filters( 'gsss_module_classes', array() );
+		$classes = apply_filters( 'gsss_module_classes', array( __NAMESPACE__ . '\Modules\Vulnerabilities' ) );
 		foreach ( $classes as $class ) {
 			if ( is_subclass_of( $class, '\Graphin\SimpleSecurity\Modules\Module' ) ) {
 				$module                         = new $class();
