@@ -10,6 +10,7 @@ namespace Graphin\SimpleSecurity\Admin;
 use Graphin\SimpleSecurity\Crypto;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Login\LoginLimiter;
+use Graphin\SimpleSecurity\Login\LoginUrl;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
 use Graphin\SimpleSecurity\Modules\Hardening;
@@ -233,12 +234,35 @@ class Admin {
 		Settings::set( 'login_proxy', empty( $_POST['login_proxy'] ) ? 0 : 1 );
 		Settings::set( 'login_whitelist', array_values( array_unique( $whitelist ) ) );
 		LoginLimiter::sync_schedule( (bool) $limiting );
+
+		// URL de connexion personnalisée.
+		$notice   = 'saved';
+		$url_on   = empty( $_POST['login_url_enabled'] ) ? 0 : 1;
+		$slug     = isset( $_POST['login_url_slug'] ) ? sanitize_title( wp_unslash( $_POST['login_url_slug'] ) ) : '';
+		$previous = LoginUrl::slug();
+		if ( $url_on ) {
+			// Un slug déjà actif n'est pas re-testé contre le contenu du site (il l'a été à son activation).
+			$check = ( '' !== $previous && $slug === $previous ) ? true : LoginUrl::validate_slug( $slug );
+			if ( true !== $check ) {
+				$notice = 'slug_' . $check;
+				$url_on = 0;
+				$slug   = $previous;
+			}
+		}
+		Settings::set( 'login_url_enabled', $url_on );
+		Settings::set( 'login_url_slug', $slug );
+		if ( $url_on && $slug !== $previous ) {
+			$notice = LoginUrl::notify( $slug ) ? 'url_active' : 'url_active_nomail';
+			Logger::log( 'login_url_enabled', __( 'URL de connexion personnalisée activée.', 'graphin-simple-security-ssl' ), array( 'slug' => $slug ), 'warning' );
+		} elseif ( ! $url_on && '' !== $previous && 'saved' === $notice ) {
+			Logger::log( 'login_url_disabled', __( 'URL de connexion personnalisée désactivée.', 'graphin-simple-security-ssl' ) );
+		}
 		Logger::log( 'settings_saved', __( 'Réglages Connexion enregistrés.', 'graphin-simple-security-ssl' ) );
 		wp_safe_redirect(
 			add_query_arg(
 				array(
 					'page'        => 'gsss-login',
-					'gsss_notice' => 'saved',
+					'gsss_notice' => $notice,
 				),
 				admin_url( 'admin.php' )
 			)

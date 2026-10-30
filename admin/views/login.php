@@ -7,6 +7,7 @@
 
 use Graphin\SimpleSecurity\Crypto;
 use Graphin\SimpleSecurity\Login\LoginLimiter;
+use Graphin\SimpleSecurity\Login\LoginUrl;
 use Graphin\SimpleSecurity\Login\Twofactor;
 use Graphin\SimpleSecurity\Settings;
 
@@ -18,6 +19,13 @@ $gsss_crypto   = Crypto::available();
 $gsss_handler  = new Twofactor();
 $gsss_blocked  = (int) $gsss_settings['login_limit_enabled'] ? LoginLimiter::blocked_list() : array();
 $gsss_others   = LoginLimiter::conflicting_plugins();
+$gsss_slug     = LoginUrl::slug();
+$gsss_slug_err = array(
+	'slug_format'    => __( 'Adresse refusée : 3 à 40 caractères, minuscules, chiffres et tirets.', 'graphin-simple-security-ssl' ),
+	'slug_reserved'  => __( 'Adresse refusée : ce mot est réservé par WordPress.', 'graphin-simple-security-ssl' ),
+	'slug_taken'     => __( 'Adresse refusée : une page, un article ou une catégorie du site l\'utilise déjà.', 'graphin-simple-security-ssl' ),
+	'slug_multisite' => __( 'L\'adresse de connexion personnalisée n\'est pas prise en charge en multisite.', 'graphin-simple-security-ssl' ),
+);
 $gsss_users    = get_users(
 	array(
 		'number'  => 200,
@@ -28,6 +36,14 @@ $gsss_users    = get_users(
 ?>
 <?php if ( 'saved' === $gsss_notice ) : ?>
 	<div class="notice notice-success inline"><p><?php esc_html_e( 'Réglages enregistrés.', 'graphin-simple-security-ssl' ); ?></p></div>
+<?php elseif ( isset( $gsss_slug_err[ $gsss_notice ] ) ) : ?>
+	<div class="notice notice-error inline"><p><?php echo esc_html( $gsss_slug_err[ $gsss_notice ] ); ?></p></div>
+<?php elseif ( 'url_active' === $gsss_notice || 'url_active_nomail' === $gsss_notice ) : ?>
+	<div class="notice notice-warning inline"><p>
+		<strong><?php esc_html_e( 'Nouvelle adresse de connexion active.', 'graphin-simple-security-ssl' ); ?></strong>
+		<?php echo 'url_active' === $gsss_notice ? esc_html__( 'Un email l\'a envoyée à l\'agence et à l\'administrateur du site.', 'graphin-simple-security-ssl' ) : esc_html__( 'L\'email n\'a pas pu partir : notez l\'adresse ci-dessous.', 'graphin-simple-security-ssl' ); ?>
+		<?php esc_html_e( 'Avant de fermer cette session, ouvrez l\'adresse dans une fenêtre de navigation privée pour vérifier qu\'elle fonctionne.', 'graphin-simple-security-ssl' ); ?>
+	</p></div>
 <?php elseif ( 'unblocked' === $gsss_notice ) : ?>
 	<div class="notice notice-success inline"><p><?php esc_html_e( 'IP débloquée.', 'graphin-simple-security-ssl' ); ?></p></div>
 <?php elseif ( 'reset' === $gsss_notice ) : ?>
@@ -57,6 +73,20 @@ $gsss_users    = get_users(
 		<label><input type="checkbox" name="login_2fa_remember" value="1" <?php checked( (int) $gsss_settings['login_2fa_remember'], 1 ); ?>> <?php esc_html_e( 'Proposer « Se souvenir de cet appareil 30 jours »', 'graphin-simple-security-ssl' ); ?></label>
 	</p>
 	<p class="description gsss-warning"><?php esc_html_e( 'Un compte protégé ne peut ouvrir une session que depuis la page de connexion WordPress. Les connexions par mot de passe seul depuis un autre formulaire ou XML-RPC sont refusées.', 'graphin-simple-security-ssl' ); ?></p>
+
+	<h2><?php esc_html_e( 'Adresse de connexion personnalisée', 'graphin-simple-security-ssl' ); ?></h2>
+	<p>
+		<label><input type="checkbox" name="login_url_enabled" value="1" <?php checked( (int) $gsss_settings['login_url_enabled'], 1 ); ?> <?php disabled( is_multisite() ); ?>> <strong><?php esc_html_e( 'Utiliser une adresse de connexion personnalisée', 'graphin-simple-security-ssl' ); ?></strong></label><br>
+		<span class="description"><?php esc_html_e( 'wp-login.php et /wp-admin répondent 404 aux visiteurs non connectés. Un email donne la nouvelle adresse à l\'agence et à l\'administrateur du site.', 'graphin-simple-security-ssl' ); ?></span>
+	</p>
+	<p>
+		<label for="gsss-slug"><?php esc_html_e( 'Adresse', 'graphin-simple-security-ssl' ); ?></label>
+		<code><?php echo esc_html( home_url( '/' ) ); ?></code><input type="text" id="gsss-slug" name="login_url_slug" value="<?php echo esc_attr( $gsss_settings['login_url_slug'] ); ?>" class="regular-text" autocomplete="off">
+	</p>
+	<?php if ( '' !== $gsss_slug ) : ?>
+		<p><?php esc_html_e( 'Adresse actuelle :', 'graphin-simple-security-ssl' ); ?> <a href="<?php echo esc_url( LoginUrl::url( $gsss_slug ) ); ?>"><?php echo esc_html( LoginUrl::url( $gsss_slug ) ); ?></a></p>
+	<?php endif; ?>
+	<p class="description gsss-warning"><?php esc_html_e( 'En cas de blocage : ajoutez define( \'GSSS_SAFE_MODE\', true ); dans wp-config.php, ou renommez le dossier du plugin en FTP. Les liens publics de connexion du site (widget Méta, thème) pointent vers la nouvelle adresse.', 'graphin-simple-security-ssl' ); ?></p>
 
 	<h2><?php esc_html_e( 'Limitation des tentatives de connexion', 'graphin-simple-security-ssl' ); ?></h2>
 	<?php if ( ! empty( $gsss_others ) ) : ?>

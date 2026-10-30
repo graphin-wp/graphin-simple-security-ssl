@@ -8,6 +8,7 @@
 namespace Graphin\SimpleSecurity\Modules;
 
 use Graphin\SimpleSecurity\Login\LoginLimiter;
+use Graphin\SimpleSecurity\Login\LoginUrl;
 use Graphin\SimpleSecurity\Login\Twofactor;
 use Graphin\SimpleSecurity\Settings;
 
@@ -45,6 +46,8 @@ class Login extends Module {
 				'login_limit_block'    => 30,
 				'login_proxy'          => 0,
 				'login_whitelist'      => array(),
+				'login_url_enabled'    => 0,
+				'login_url_slug'       => '',
 			)
 		);
 	}
@@ -64,7 +67,7 @@ class Login extends Module {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		return (bool) Settings::get( 'login_2fa_enabled' ) || (bool) Settings::get( 'login_limit_enabled' );
+		return (bool) Settings::get( 'login_2fa_enabled' ) || (bool) Settings::get( 'login_limit_enabled' ) || (bool) Settings::get( 'login_url_enabled' );
 	}
 
 	/**
@@ -78,6 +81,9 @@ class Login extends Module {
 		}
 		if ( Settings::get( 'login_limit_enabled' ) ) {
 			( new LoginLimiter() )->register_hooks();
+		}
+		if ( Settings::get( 'login_url_enabled' ) ) {
+			( new LoginUrl() )->register_hooks();
 		}
 	}
 }
