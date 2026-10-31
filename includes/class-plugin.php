@@ -106,6 +106,7 @@ class Plugin {
 		$classes = apply_filters(
 			'gsss_module_classes',
 			array(
+				__NAMESPACE__ . '\Modules\Ssl',
 				__NAMESPACE__ . '\Modules\Vulnerabilities',
 				__NAMESPACE__ . '\Modules\Hardening',
 				__NAMESPACE__ . '\Modules\Headers',
