@@ -144,9 +144,9 @@ class Htaccess {
 	 */
 	public static function sync() {
 		$result = self::apply( self::path(), self::collect_rules() );
-		// Mémorise si les règles sont en place : les modules passent en PHP quand ce n'est pas le cas.
-		update_option( 'gsss_htaccess_active', is_wp_error( $result ) ? 0 : 1, true );
 		if ( is_wp_error( $result ) ) {
+			// Règles non écrites ou restaurées : les modules passent en PHP.
+			update_option( 'gsss_htaccess_active', 0, true );
 			return $result;
 		}
 		$uploads = self::uploads_path();
@@ -221,7 +221,7 @@ class Htaccess {
 	}
 
 	/**
-	 * Mode secours : retire le bloc s'il est présent, sans toucher à la base de données.
+	 * Mode secours : retire le bloc s'il est présent, sans toucher aux réglages.
 	 *
 	 * @return void
 	 */
@@ -254,6 +254,7 @@ class Htaccess {
 		$stripped = self::strip_block( $original );
 		$new      = empty( $lines ) ? $stripped : self::build_block( $lines ) . $stripped;
 		if ( $new === $original ) {
+			self::remember( $file, $new );
 			return true;
 		}
 		if ( ! self::is_writable( $file ) ) {
@@ -294,6 +295,7 @@ class Htaccess {
 		if ( '' === $new ) {
 			wp_delete_file( $file );
 		}
+		self::remember( $file, $new );
 		self::log( empty( $lines ) ? 'htaccess_removed' : 'htaccess_written', empty( $lines ) ? 'Bloc .htaccess retiré.' : 'Bloc .htaccess écrit.' );
 		return true;
 	}
@@ -321,6 +323,20 @@ class Htaccess {
 			return new \WP_Error( 'gsss_probe_http', sprintf( __( 'Code HTTP %d.', 'graphin-simple-security-ssl' ), $code ) );
 		}
 		return true;
+	}
+
+	/**
+	 * Mémorise si le bloc est dans le .htaccess principal, quel que soit le chemin d'écriture
+	 * (enregistrement, désactivation, mode secours) : les modules passent en PHP quand il n'y est pas.
+	 *
+	 * @param string $file    Fichier écrit.
+	 * @param string $content Contenu en place.
+	 * @return void
+	 */
+	private static function remember( $file, $content ) {
+		if ( self::path() === $file ) {
+			update_option( 'gsss_htaccess_active', self::has_block( $content ) ? 1 : 0, true );
+		}
 	}
 
 	/**

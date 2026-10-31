@@ -65,7 +65,7 @@ class Plugin {
 	 */
 	public static function boot_safe_mode() {
 		add_action( 'admin_notices', array( __CLASS__, 'safe_mode_notice' ) );
-		// Le mode secours retire aussi le bloc .htaccess, sans toucher à la base de données.
+		// Le mode secours retire aussi le bloc .htaccess, sans toucher aux réglages.
 		add_action( 'admin_init', array( __NAMESPACE__ . '\Htaccess', 'remove_if_present' ) );
 	}
 
