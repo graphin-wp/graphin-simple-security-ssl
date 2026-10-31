@@ -18,3 +18,6 @@ vendor/phpcompatibility
 vendor/dealerdirect
 vendor/composer
 vendor/autoload.php
+vendor/phpcsstandards
+bin
+build

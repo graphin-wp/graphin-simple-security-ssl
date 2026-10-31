@@ -1,0 +1,50 @@
+# Sur un tag vX.Y.Z : contrôle du code, construction du zip propre, release GitHub avec le zip en asset.
+# Le plugin (Plugin Update Checker) télécharge cet asset pour se mettre à jour.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2
+
+      - name: Version du tag identique à celle du plugin
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HEADER=$(sed -n 's/^ \* Version: *//p' graphin-simple-security-ssl.php)
+          CONST=$(sed -n "s/^define( 'GSSS_VERSION', '\(.*\)' );/\1/p" graphin-simple-security-ssl.php)
+          echo "tag=$TAG en-tête=$HEADER constante=$CONST"
+          test "$TAG" = "$HEADER" && test "$TAG" = "$CONST"
+          grep -q "^## $TAG" CHANGELOG.md
+
+      - name: Syntaxe PHP 7.4
+        run: find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+      - name: PHPCS
+        run: |
+          composer install --no-interaction --no-progress
+          vendor/bin/phpcs
+
+      - name: Construction du zip
+        run: bash bin/build-zip.sh
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Notes : la section du CHANGELOG qui porte la version du tag.
+          NOTES=$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## " v { on = 1; next } /^## / { on = 0 } on' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" build/graphin-simple-security-ssl.zip --title "$GITHUB_REF_NAME" --notes "$NOTES"
