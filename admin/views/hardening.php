@@ -12,10 +12,6 @@ use Graphin\SimpleSecurity\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! function_exists( 'is_plugin_active' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/plugin.php';
-}
-
 $gsss_settings = Settings::all();
 $gsss_options  = Hardening::options();
 $gsss_notice   = isset( $_GET['gsss_notice'] ) ? sanitize_key( wp_unslash( $_GET['gsss_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Affichage d'un message.
@@ -25,7 +21,7 @@ $gsss_role     = Hardening::risky_registration_role();
 $gsss_modules  = Plugin::instance()->modules();
 $gsss_snippet  = isset( $gsss_modules['hardening'] ) && ! $gsss_apache ? $gsss_modules['hardening']->nginx_rules() : '';
 $gsss_overlap  = array( 'hard_xmlrpc', 'hard_pingbacks', 'hard_opcache_notice' );
-$gsss_old      = is_plugin_active( 'graphin-hardening/graphin-hardening.php' );
+$gsss_old      = \Graphin\SimpleSecurity\Dashboard::hardening_active();
 ?>
 <?php if ( 'saved' === $gsss_notice ) : ?>
 	<div class="notice notice-success inline"><p><?php esc_html_e( 'Réglages enregistrés.', 'graphin-simple-security-ssl' ); ?></p></div>
@@ -61,7 +57,7 @@ $gsss_old      = is_plugin_active( 'graphin-hardening/graphin-hardening.php' );
 
 	<ul class="gsss-options">
 		<?php foreach ( $gsss_options as $gsss_key => $gsss_option ) : ?>
-			<li class="gsss-option">
+			<li class="gsss-option" id="gsss-opt-<?php echo esc_attr( $gsss_key ); ?>">
 				<label class="gsss-switch">
 					<input type="checkbox" name="<?php echo esc_attr( $gsss_key ); ?>" value="1" <?php checked( (int) $gsss_settings[ $gsss_key ], 1 ); ?>>
 					<span class="gsss-switch__slider" aria-hidden="true"></span>

@@ -12,17 +12,13 @@ use Graphin\SimpleSecurity\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! function_exists( 'is_plugin_active' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/plugin.php';
-}
-
 $gsss_settings = Settings::all();
 $gsss_options  = Headers::options();
 $gsss_notice   = isset( $_GET['gsss_notice'] ) ? sanitize_key( wp_unslash( $_GET['gsss_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Affichage d'un message.
 $gsss_reports  = CspReports::all();
 $gsss_policy   = Headers::policy();
 $gsss_enforce  = 'enforce' === $gsss_settings['hdr_csp_mode'];
-$gsss_old      = is_plugin_active( 'graphin-hardening/graphin-hardening.php' );
+$gsss_old      = \Graphin\SimpleSecurity\Dashboard::hardening_active();
 $gsss_apache   = 'apache' === $gsss_settings['server_mode'] && Htaccess::is_writable();
 $gsss_messages = array(
 	'saved'            => array( 'success', __( 'Réglages enregistrés.', 'graphin-simple-security-ssl' ) ),
@@ -55,7 +51,7 @@ $gsss_messages = array(
 
 	<ul class="gsss-options">
 		<?php foreach ( $gsss_options as $gsss_key => $gsss_option ) : ?>
-			<li class="gsss-option">
+			<li class="gsss-option" id="gsss-opt-<?php echo esc_attr( $gsss_key ); ?>">
 				<label class="gsss-switch">
 					<input type="checkbox" name="<?php echo esc_attr( $gsss_key ); ?>" value="1" <?php checked( (int) $gsss_settings[ $gsss_key ], 1 ); ?>>
 					<span class="gsss-switch__slider" aria-hidden="true"></span>

@@ -53,6 +53,15 @@ class Login extends Module {
 	}
 
 	/**
+	 * Réglage coché par « Appliquer les réglages recommandés ».
+	 *
+	 * @return array
+	 */
+	public function recommended() {
+		return array( 'login_limit_enabled' => __( 'Limiter les tentatives de connexion', 'graphin-simple-security-ssl' ) );
+	}
+
+	/**
 	 * Identifiant.
 	 *
 	 * @return string

@@ -56,6 +56,15 @@ class Vulnerabilities extends Module {
 	}
 
 	/**
+	 * Réglage coché par « Appliquer les réglages recommandés ».
+	 *
+	 * @return array
+	 */
+	public function recommended() {
+		return array( 'vuln_enabled' => __( 'Scanner les vulnérabilités chaque jour', 'graphin-simple-security-ssl' ) );
+	}
+
+	/**
 	 * Identifiant.
 	 *
 	 * @return string

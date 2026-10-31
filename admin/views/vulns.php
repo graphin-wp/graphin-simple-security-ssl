@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 $gsss_settings = Settings::all();
 $gsss_results  = VulnScanner::results();
 $gsss_saved    = isset( $_GET['gsss_notice'] ) && 'saved' === sanitize_key( wp_unslash( $_GET['gsss_notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Affichage d'un message.
-$gsss_levels   = array( 'low', 'medium', 'high', 'critical' );
+$gsss_levels   = VulnScanner::SEVERITIES;
 ?>
 <?php if ( $gsss_saved ) : ?>
 	<div class="notice notice-success inline"><p><?php esc_html_e( 'Réglages enregistrés.', 'graphin-simple-security-ssl' ); ?></p></div>
@@ -25,7 +25,7 @@ $gsss_levels   = array( 'low', 'medium', 'high', 'critical' );
 
 	<h2><?php esc_html_e( 'Détection des vulnérabilités', 'graphin-simple-security-ssl' ); ?></h2>
 	<p>
-		<label><input type="checkbox" name="vuln_enabled" value="1" <?php checked( (int) $gsss_settings['vuln_enabled'], 1 ); ?>> <strong><?php esc_html_e( 'Activer le scan quotidien', 'graphin-simple-security-ssl' ); ?></strong></label><br>
+		<label id="gsss-opt-vuln_enabled"><input type="checkbox" name="vuln_enabled" value="1" <?php checked( (int) $gsss_settings['vuln_enabled'], 1 ); ?>> <strong><?php esc_html_e( 'Activer le scan quotidien', 'graphin-simple-security-ssl' ); ?></strong></label><br>
 		<span class="description"><?php esc_html_e( 'Interroge wpvulnerability.net pour chaque extension, thème et pour WordPress. Seuls les identifiants des composants sont envoyés (pour WordPress, son numéro de version), jamais l\'adresse du site.', 'graphin-simple-security-ssl' ); ?></span>
 	</p>
 	<p>

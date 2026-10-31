@@ -218,3 +218,62 @@
 	border: 1px solid var(--gsss-border);
 	border-radius: 4px;
 }
+
+.gsss-card--highlight {
+	border-left: 4px solid var(--gsss-accent);
+}
+
+.gsss-score {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.gsss-score__value {
+	font-size: 32px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.gsss-score__bar {
+	flex: 1 1 auto;
+	height: 10px;
+	background: var(--gsss-bg);
+	border-radius: 5px;
+	overflow: hidden;
+}
+
+.gsss-score__bar span {
+	display: block;
+	height: 100%;
+}
+
+.gsss-score--ok .gsss-score__bar span {
+	background: var(--gsss-ok);
+}
+
+.gsss-score--warn .gsss-score__bar span {
+	background: var(--gsss-warn);
+}
+
+.gsss-score--ko .gsss-score__bar span {
+	background: var(--gsss-danger);
+}
+
+.gsss-todo {
+	list-style: disc;
+	margin-left: 20px;
+}
+
+.gsss-status th {
+	width: 180px;
+}
+
+:target {
+	scroll-margin-top: 48px;
+}
+
+.gsss-option:target,
+label:target {
+	background: #fcf9e8;
+}

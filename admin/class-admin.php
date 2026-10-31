@@ -9,9 +9,11 @@ namespace Graphin\SimpleSecurity\Admin;
 
 use Graphin\SimpleSecurity\Crypto;
 use Graphin\SimpleSecurity\CspReports;
+use Graphin\SimpleSecurity\Dashboard;
 use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Login\LoginLimiter;
 use Graphin\SimpleSecurity\Login\LoginUrl;
+use Graphin\SimpleSecurity\Login\Twofactor;
 use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
 use Graphin\SimpleSecurity\Modules\Hardening;
@@ -75,6 +77,10 @@ class Admin {
 		add_action( 'admin_post_gsss_ssl_enable', array( $this, 'ssl_enable' ) );
 		add_action( 'admin_post_gsss_ssl_revert', array( $this, 'ssl_revert' ) );
 		add_action( 'wp_ajax_gsss_ssl_detect', array( $this, 'ajax_ssl_detect' ) );
+		add_action( 'admin_post_gsss_apply_recommended', array( $this, 'apply_recommended' ) );
+		add_action( 'admin_post_gsss_take_over_hardening', array( $this, 'take_over_hardening' ) );
+		add_action( 'admin_post_gsss_export', array( $this, 'export_settings' ) );
+		add_action( 'admin_post_gsss_import', array( $this, 'import_settings' ) );
 	}
 
 	/**
@@ -349,7 +355,7 @@ class Admin {
 		$keys     = array( 'ssl_www', 'ssl_mixed_front', 'ssl_mixed_admin', 'ssl_hsts', 'ssl_hsts_subdomains', 'ssl_hsts_preload' );
 		$previous = array_intersect_key( Settings::all(), array_flip( $keys ) );
 		$www      = isset( $_POST['ssl_www'] ) ? sanitize_key( wp_unslash( $_POST['ssl_www'] ) ) : 'none';
-		if ( ! in_array( $www, array( 'none', 'www', 'non-www' ), true ) ) {
+		if ( ! in_array( $www, Ssl::WWW_CHOICES, true ) ) {
 			$www = 'none';
 		}
 		if ( ! Ssl::www_matches( $www ) ) {
@@ -415,6 +421,77 @@ class Admin {
 	}
 
 	/**
+	 * Code de message pour le résultat d'une action du tableau de bord.
+	 *
+	 * @param mixed  $result Résultat (WP_Error en cas d'échec).
+	 * @param string $ok     Code en cas de succès.
+	 * @param string $failed Code pour une autre erreur que la restauration.
+	 * @return string
+	 */
+	private function notice_for( $result, $ok, $failed ) {
+		if ( ! is_wp_error( $result ) ) {
+			return $ok;
+		}
+		return Htaccess::is_rollback( $result ) ? 'rollback' : $failed;
+	}
+
+	/**
+	 * Coche tous les réglages recommandés.
+	 *
+	 * @return void
+	 */
+	public function apply_recommended() {
+		check_admin_referer( 'gsss_apply_recommended' );
+		$this->guard();
+		$this->back( 'gsss', $this->notice_for( Dashboard::apply_recommended(), 'recommended', 'htaccess_error' ) );
+	}
+
+	/**
+	 * Reprend Graph'in Hardening puis le désactive.
+	 *
+	 * @return void
+	 */
+	public function take_over_hardening() {
+		check_admin_referer( 'gsss_take_over_hardening' );
+		$this->guard();
+		$result = Dashboard::take_over_hardening();
+		$this->back( 'gsss', is_wp_error( $result ) ? $this->notice_for( $result, '', 'hardening_absent' ) : 'hardening_done' . $result );
+	}
+
+	/**
+	 * Télécharge les réglages en JSON.
+	 *
+	 * @return void
+	 */
+	public function export_settings() {
+		check_admin_referer( 'gsss_export' );
+		$this->guard();
+		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="gsss-' . sanitize_file_name( $host ) . '-' . gmdate( 'Y-m-d' ) . '.json"' );
+		echo wp_json_encode( Dashboard::export(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		exit;
+	}
+
+	/**
+	 * Importe un fichier de réglages (64 Ko au plus).
+	 *
+	 * @return void
+	 */
+	public function import_settings() {
+		check_admin_referer( 'gsss_import' );
+		$this->guard();
+		$file = isset( $_FILES['gsss_file'] ) && is_array( $_FILES['gsss_file'] ) ? $_FILES['gsss_file'] : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Seul le chemin temporaire est lu, après is_uploaded_file().
+		$tmp  = isset( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
+		if ( '' === $tmp || ! is_uploaded_file( $tmp ) || (int) $file['size'] > 65536 ) {
+			$this->back( 'gsss', 'import_invalid' );
+		}
+		$result = Dashboard::import( (string) file_get_contents( $tmp ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Fichier local envoyé par le formulaire.
+		$this->back( 'gsss', $this->notice_for( $result, 'imported', 'import_invalid' ) );
+	}
+
+	/**
 	 * Enregistre les réglages de connexion (double authentification).
 	 *
 	 * @return void
@@ -424,16 +501,13 @@ class Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
 		}
-		$enabled = ! empty( $_POST['login_2fa_enabled'] ) && Crypto::available() ? 1 : 0;
-		$enforce = empty( $_POST['login_2fa_enforce'] ) ? 0 : 1;
-		$grace   = isset( $_POST['login_2fa_grace'] ) ? min( 90, absint( $_POST['login_2fa_grace'] ) ) : 7;
-		if ( $enforce && ! Settings::get( 'login_2fa_enforce' ) ) {
-			update_option( 'gsss_2fa_enforce_since', time(), false );
-		} elseif ( ! $enforce ) {
-			delete_option( 'gsss_2fa_enforce_since' );
-		}
+		$enabled      = ! empty( $_POST['login_2fa_enabled'] ) && Crypto::available() ? 1 : 0;
+		$enforce      = empty( $_POST['login_2fa_enforce'] ) ? 0 : 1;
+		$grace        = isset( $_POST['login_2fa_grace'] ) ? absint( $_POST['login_2fa_grace'] ) : 7;
+		$was_enforced = (bool) Settings::get( 'login_2fa_enforce' );
 		Settings::set( 'login_2fa_enabled', $enabled );
 		Settings::set( 'login_2fa_enforce', $enforce );
+		Twofactor::sync_enforce_since( $was_enforced );
 		Settings::set( 'login_2fa_grace', $grace );
 		Settings::set( 'login_2fa_remember', empty( $_POST['login_2fa_remember'] ) ? 0 : 1 );
 
@@ -450,15 +524,12 @@ class Admin {
 		}
 		// À l'activation, l'IP de l'administrateur est ajoutée à la liste blanche pour ne pas l'enfermer dehors.
 		if ( $limiting && ! $was_limiting ) {
-			$own = LoginLimiter::client_ip();
-			if ( '' !== $own ) {
-				$whitelist[] = $own;
-			}
+			$whitelist = LoginLimiter::with_own_ip( $whitelist );
 		}
 		Settings::set( 'login_limit_enabled', $limiting );
-		Settings::set( 'login_limit_attempts', max( 1, min( 50, isset( $_POST['login_limit_attempts'] ) ? absint( $_POST['login_limit_attempts'] ) : 5 ) ) );
-		Settings::set( 'login_limit_window', max( 1, min( 1440, isset( $_POST['login_limit_window'] ) ? absint( $_POST['login_limit_window'] ) : 15 ) ) );
-		Settings::set( 'login_limit_block', max( 1, min( 1440, isset( $_POST['login_limit_block'] ) ? absint( $_POST['login_limit_block'] ) : 30 ) ) );
+		Settings::set( 'login_limit_attempts', isset( $_POST['login_limit_attempts'] ) ? absint( $_POST['login_limit_attempts'] ) : 5 );
+		Settings::set( 'login_limit_window', isset( $_POST['login_limit_window'] ) ? absint( $_POST['login_limit_window'] ) : 15 );
+		Settings::set( 'login_limit_block', isset( $_POST['login_limit_block'] ) ? absint( $_POST['login_limit_block'] ) : 30 );
 		Settings::set( 'login_proxy', empty( $_POST['login_proxy'] ) ? 0 : 1 );
 		Settings::set( 'login_whitelist', array_values( array_unique( $whitelist ) ) );
 		LoginLimiter::sync_schedule( (bool) $limiting );
@@ -536,7 +607,7 @@ class Admin {
 			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
 		}
 		$severity = isset( $_POST['vuln_min_severity'] ) ? sanitize_key( wp_unslash( $_POST['vuln_min_severity'] ) ) : 'medium';
-		if ( ! in_array( $severity, array( 'low', 'medium', 'high', 'critical' ), true ) ) {
+		if ( ! in_array( $severity, VulnScanner::SEVERITIES, true ) ) {
 			$severity = 'medium';
 		}
 		$enabled = empty( $_POST['vuln_enabled'] ) ? 0 : 1;

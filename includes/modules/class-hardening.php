@@ -183,7 +183,7 @@ class Hardening extends Module {
 		$keys = array();
 		foreach ( self::options() as $key => $option ) {
 			if ( $option['recommended'] ) {
-				$keys[ $key ] = 1;
+				$keys[ $key ] = $option['label'];
 			}
 		}
 		return $keys;

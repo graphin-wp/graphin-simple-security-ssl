@@ -98,7 +98,7 @@ $gsss_users    = get_users(
 		</p>
 	<?php endif; ?>
 	<p>
-		<label><input type="checkbox" name="login_limit_enabled" value="1" <?php checked( (int) $gsss_settings['login_limit_enabled'], 1 ); ?>> <strong><?php esc_html_e( 'Bloquer une IP après trop d\'échecs de connexion', 'graphin-simple-security-ssl' ); ?></strong></label><br>
+		<label id="gsss-opt-login_limit_enabled"><input type="checkbox" name="login_limit_enabled" value="1" <?php checked( (int) $gsss_settings['login_limit_enabled'], 1 ); ?>> <strong><?php esc_html_e( 'Bloquer une IP après trop d\'échecs de connexion', 'graphin-simple-security-ssl' ); ?></strong></label><br>
 		<span class="description"><?php esc_html_e( 'Le blocage double à chaque récidive, dans la limite de 24 heures. Votre adresse IP actuelle est ajoutée à la liste blanche à l\'activation.', 'graphin-simple-security-ssl' ); ?></span>
 	</p>
 	<p>

@@ -11,10 +11,6 @@ use Graphin\SimpleSecurity\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! function_exists( 'is_plugin_active' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/plugin.php';
-}
-
 $gsss_settings  = Settings::all();
 $gsss_notice    = isset( $_GET['gsss_notice'] ) ? sanitize_key( wp_unslash( $_GET['gsss_notice'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Affichage d'un message.
 $gsss_enabled   = (bool) $gsss_settings['ssl_enabled'];
@@ -39,7 +35,7 @@ $gsss_messages  = array(
 	<div class="notice notice-<?php echo esc_attr( $gsss_messages[ $gsss_notice ][0] ); ?> inline"><p><?php echo esc_html( $gsss_messages[ $gsss_notice ][1] ); ?></p></div>
 <?php endif; ?>
 
-<?php if ( is_plugin_active( 'graphin-hardening/graphin-hardening.php' ) ) : ?>
+<?php if ( \Graphin\SimpleSecurity\Dashboard::hardening_active() ) : ?>
 	<div class="notice notice-info inline"><p><?php esc_html_e( 'Graph\'in Hardening est actif et envoie déjà HSTS. Pour éviter un en-tête en double, cochez HSTS ici puis désactivez-le.', 'graphin-simple-security-ssl' ); ?></p></div>
 <?php endif; ?>
 
@@ -170,7 +166,7 @@ $gsss_messages  = array(
 		);
 		foreach ( $gsss_switches as $gsss_key => $gsss_switch ) :
 			?>
-			<li class="gsss-option">
+			<li class="gsss-option" id="gsss-opt-<?php echo esc_attr( $gsss_key ); ?>">
 				<label class="gsss-switch">
 					<input type="checkbox" name="<?php echo esc_attr( $gsss_key ); ?>" value="1" <?php checked( (int) $gsss_settings[ $gsss_key ], 1 ); ?>>
 					<span class="gsss-switch__slider" aria-hidden="true"></span>

@@ -54,7 +54,7 @@ abstract class Module {
 	}
 
 	/**
-	 * Réglages cochés par « Appliquer les réglages recommandés » (clé => valeur).
+	 * Réglages cochés par « Appliquer les réglages recommandés » (clé => libellé). Ils comptent dans le score.
 	 *
 	 * @return array
 	 */
