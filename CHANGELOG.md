@@ -1,5 +1,18 @@
 # Journal des modifications
 
+## 0.9.0 (non publiée)
+
+- Module SSL : détection d'un certificat valide sur l'adresse https, avec un message lisible en cas d'échec. La date d'expiration est lue en local, sans service tiers, avec une alerte à moins de 14 jours. Bouton « Revérifier ».
+- « Activer le SSL » est refusé côté serveur si la détection échoue, si WP_HOME ou WP_SITEURL imposent http dans wp-config.php, ou en multisite. Les adresses du site passent en https si elles ne le sont pas déjà. Un cookie de connexion sécurisé est posé pour que l'administrateur reste connecté.
+- Redirection 301 vers https en un seul saut, variante www comprise, pour GET et HEAD seulement (un formulaire envoyé en http n'est pas redirigé). En Apache, elle est écrite dans .htaccess avec des conditions sur `HTTPS` et `X-Forwarded-Proto`. Sinon, PHP s'en charge.
+- Variante www : seul le choix qui correspond à l'adresse du site est accepté, car l'autre ferait boucler la redirection avec celle de WordPress.
+- Après l'enregistrement, le plugin vérifie que la redirection et HSTS sont réellement servis par Apache. Si mod_rewrite ou mod_headers manquent, PHP prend le relais. Si les règles cassent le site (boucle de redirection), .htaccess est restauré, ainsi que les adresses et les options.
+- HSTS (max-age d'un an), avec les options includeSubDomains et preload accompagnées d'avertissements. preload ajoute includeSubDomains, que les navigateurs exigent. L'en-tête n'est envoyé qu'en https.
+- Derrière un proxy qui termine le https (`X-Forwarded-Proto: https`), WordPress est informé qu'il est en https. Cela évite une boucle de redirection.
+- Correcteur de contenu mixte pour le site public, avec une case séparée pour l'administration. Les adresses `http://` du domaine (www compris, JSON échappé compris) passent en https dans les pages HTML. Les autres domaines et les sous-domaines ne sont pas modifiés.
+- « Revenir en HTTP » : confirmation, retrait de la redirection et de HSTS. Seules les adresses que le plugin avait changées repassent en http. Un avertissement rappelle que HSTS reste actif dans les navigateurs jusqu'à son expiration.
+- Avis quand Graph'in Hardening est actif (HSTS en double). Snippet Nginx affiché hors mode Apache. Journal pour chaque action.
+
 ## 0.8.0 (non publiée)
 
 - Module En-têtes de sécurité : X-Content-Type-Options, X-Frame-Options, Referrer-Policy (valeur au choix), Permissions-Policy (une case par fonctionnalité), Cross-Origin-Opener-Policy, X-XSS-Protection à 0. Tout est décoché par défaut.
