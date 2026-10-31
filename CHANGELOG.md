@@ -1,5 +1,15 @@
 # Journal des modifications
 
+## 0.10.0 (non publiée)
+
+- Tableau de bord : score de sécurité (part des points recommandés en place, SSL compris), liste « À faire » avec un lien qui mène à l'option concernée, état du certificat et de son expiration, dernier scan de vulnérabilités, version du plugin et mise à jour disponible.
+- Bouton « Appliquer les réglages recommandés » : en-têtes, durcissement, limitation des connexions (IP de l'administrateur mise en liste blanche) et scan des vulnérabilités, en une seule écriture de .htaccess. Si le site casse, tout revient comme avant. Le SSL et la double authentification ne sont pas concernés.
+- Reprise de Graph'in Hardening : les réglages équivalents sont cochés, Graph'in Hardening est désactivé, puis le plugin vérifie ce que sert Apache. Si le site est déjà en https, le SSL est activé pour garder HSTS. X-XSS-Protection passe de « 1; mode=block » à 0.
+- Liste des extensions en doublon (Login Lockdown, Limit Login Attempts, Loginizer, Wordfence, Really Simple Security, Graph'in Hardening).
+- Rappel « Corriger le contenu mixte » quand le SSL est actif sans correcteur ni Upgrade Insecure Requests.
+- Export et import des réglages en JSON. L'adresse de connexion, la liste blanche, l'email du client et l'activation du SSL restent propres à chaque site. Les valeurs importées sont contrôlées, la CSP repart en rapport seulement.
+- Socle : bornes des réglages numériques dans Settings, écriture groupée (`set_many`), `Htaccess::is_rollback()`, détection commune des extensions actives.
+
 ## 0.9.0 (non publiée)
 
 - Module SSL : détection d'un certificat valide sur l'adresse https, avec un message lisible en cas d'échec. La date d'expiration est lue en local, sans service tiers, avec une alerte à moins de 14 jours. Bouton « Revérifier ».
