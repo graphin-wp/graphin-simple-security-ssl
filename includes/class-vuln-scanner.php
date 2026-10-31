@@ -21,6 +21,7 @@ class VulnScanner {
 	const BATCH           = 10;
 	const PAUSE_MICROSEC  = 300000;
 	const DESCRIPTION_MAX = 220;
+	const SEVERITIES      = array( 'low', 'medium', 'high', 'critical' );
 
 	/**
 	 * Rang d'une gravité, pour comparer et trier.

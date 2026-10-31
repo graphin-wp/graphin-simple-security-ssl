@@ -17,6 +17,18 @@ class Settings {
 	const OPTION = 'gsss_settings';
 
 	/**
+	 * Bornes des réglages numériques : clé => array( min, max ).
+	 *
+	 * @var array
+	 */
+	private static $ranges = array(
+		'login_2fa_grace'      => array( 0, 90 ),
+		'login_limit_attempts' => array( 1, 50 ),
+		'login_limit_window'   => array( 1, 1440 ),
+		'login_limit_block'    => array( 1, 1440 ),
+	);
+
+	/**
 	 * Valeurs par défaut : tout est désactivé tant que l'utilisateur ne coche rien.
 	 *
 	 * @return array
@@ -79,6 +91,23 @@ class Settings {
 	}
 
 	/**
+	 * Écrit plusieurs réglages en une seule écriture en base. Les clés inconnues sont ignorées.
+	 *
+	 * @param array $values Clé => valeur.
+	 * @return bool
+	 */
+	public static function set_many( $values ) {
+		$defaults = self::defaults();
+		$all      = self::all();
+		foreach ( $values as $key => $value ) {
+			if ( array_key_exists( $key, $defaults ) ) {
+				$all[ $key ] = self::sanitize_value( $key, $value, $defaults[ $key ] );
+			}
+		}
+		return update_option( self::OPTION, $all, false );
+	}
+
+	/**
 	 * Nettoie une valeur d'après le type attendu.
 	 *
 	 * @param string $key     Clé.
@@ -94,7 +123,8 @@ class Settings {
 			return sanitize_email( (string) $value );
 		}
 		if ( is_int( $fallback ) ) {
-			return absint( $value );
+			$value = absint( $value );
+			return isset( self::$ranges[ $key ] ) ? max( self::$ranges[ $key ][0], min( self::$ranges[ $key ][1], $value ) ) : $value;
 		}
 		if ( is_array( $fallback ) ) {
 			return is_array( $value ) ? array_map( 'sanitize_text_field', $value ) : array();

@@ -134,6 +134,31 @@ class Plugin {
 	}
 
 	/**
+	 * Noms des extensions actives dont le nom contient l'un des mots donnés.
+	 *
+	 * @param string[] $names Morceaux de noms recherchés (sans tenir compte de la casse).
+	 * @return string[]
+	 */
+	public static function active_plugins_named( $names ) {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$found = array();
+		foreach ( get_plugins() as $file => $data ) {
+			if ( ! is_plugin_active( $file ) ) {
+				continue;
+			}
+			foreach ( $names as $name ) {
+				if ( false !== stripos( $data['Name'], $name ) ) {
+					$found[] = $data['Name'];
+					break;
+				}
+			}
+		}
+		return $found;
+	}
+
+	/**
 	 * Lien « Réglages » dans la liste des extensions.
 	 *
 	 * @param string[] $links Liens existants.

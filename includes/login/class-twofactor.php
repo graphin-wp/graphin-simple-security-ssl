@@ -40,6 +40,20 @@ class Twofactor {
 	const CODES_COUNT   = 10;
 	const PAGE          = 'gsss-2fa';
 
+
+	/**
+	 * Date de départ du délai de grâce : posée quand l'obligation s'active, effacée quand elle s'arrête.
+	 *
+	 * @param bool $was_enforced Vrai si l'obligation était active avant l'enregistrement.
+	 * @return void
+	 */
+	public static function sync_enforce_since( $was_enforced ) {
+		if ( ! Settings::get( 'login_2fa_enforce' ) ) {
+			delete_option( 'gsss_2fa_enforce_since' );
+		} elseif ( ! $was_enforced ) {
+			update_option( 'gsss_2fa_enforce_since', time(), false );
+		}
+	}
 	/**
 	 * Suffixe de la page de configuration, pour charger les assets seulement là.
 	 *

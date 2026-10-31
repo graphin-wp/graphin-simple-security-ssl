@@ -23,6 +23,7 @@ class Ssl extends Module {
 	const HSTS_MAX_AGE  = 31536000;
 	const REDIRECT_FLAG = 'gsss_ssl_redirect_php';
 	const HSTS_FLAG     = 'gsss_hsts_via_php';
+	const WWW_CHOICES   = array( 'none', 'www', 'non-www' );
 
 	/**
 	 * Déclare les valeurs par défaut, même quand le module est inactif.

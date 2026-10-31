@@ -158,15 +158,24 @@ class Htaccess {
 	}
 
 	/**
-	 * Aligne les fichiers ; si les nouvelles règles cassent le site (rollback), $restore remet
-	 * les réglages précédents et les fichiers sont réalignés sur eux.
+	 * Le résultat est-il une restauration (les règles cassaient le site) ?
+	 *
+	 * @param mixed $result Résultat de sync().
+	 * @return bool
+	 */
+	public static function is_rollback( $result ) {
+		return is_wp_error( $result ) && 'gsss_htaccess_rollback' === $result->get_error_code();
+	}
+
+	/**
+	 * Aligne .htaccess ; si les nouvelles règles cassent le site, appelle $restore puis réaligne.
 	 *
 	 * @param callable $restore Remet les réglages d'avant.
-	 * @return true|\WP_Error Résultat de la première synchronisation.
+	 * @return true|\WP_Error
 	 */
 	public static function sync_or_restore( $restore ) {
 		$result = self::sync();
-		if ( is_wp_error( $result ) && 'gsss_htaccess_rollback' === $result->get_error_code() ) {
+		if ( self::is_rollback( $result ) ) {
 			call_user_func( $restore );
 			self::sync();
 		}

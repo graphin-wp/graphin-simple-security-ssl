@@ -8,6 +8,7 @@
 namespace Graphin\SimpleSecurity\Login;
 
 use Graphin\SimpleSecurity\Logger;
+use Graphin\SimpleSecurity\Plugin;
 use Graphin\SimpleSecurity\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -387,21 +388,20 @@ class LoginLimiter {
 	 * @return string[]
 	 */
 	public static function conflicting_plugins() {
-		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		return Plugin::active_plugins_named( self::$other_limiters );
+	}
+
+	/**
+	 * Ajoute l'IP de l'administrateur courant à une liste blanche, pour ne pas l'enfermer dehors.
+	 *
+	 * @param string[] $whitelist Liste existante.
+	 * @return string[]
+	 */
+	public static function with_own_ip( $whitelist ) {
+		$own = self::client_ip();
+		if ( '' !== $own ) {
+			$whitelist[] = $own;
 		}
-		$found = array();
-		foreach ( get_plugins() as $file => $data ) {
-			if ( ! is_plugin_active( $file ) ) {
-				continue;
-			}
-			foreach ( self::$other_limiters as $name ) {
-				if ( false !== stripos( $data['Name'], $name ) ) {
-					$found[] = $data['Name'];
-					break;
-				}
-			}
-		}
-		return $found;
+		return array_values( array_unique( $whitelist ) );
 	}
 }
