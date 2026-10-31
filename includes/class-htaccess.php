@@ -158,6 +158,42 @@ class Htaccess {
 	}
 
 	/**
+	 * Aligne les fichiers ; si les nouvelles règles cassent le site (rollback), $restore remet
+	 * les réglages précédents et les fichiers sont réalignés sur eux.
+	 *
+	 * @param callable $restore Remet les réglages d'avant.
+	 * @return true|\WP_Error Résultat de la première synchronisation.
+	 */
+	public static function sync_or_restore( $restore ) {
+		$result = self::sync();
+		if ( is_wp_error( $result ) && 'gsss_htaccess_rollback' === $result->get_error_code() ) {
+			call_user_func( $restore );
+			self::sync();
+		}
+		return $result;
+	}
+
+	/**
+	 * Les règles .htaccess sont-elles en place (mode Apache, dernière écriture réussie) ?
+	 *
+	 * @return bool
+	 */
+	public static function rules_served() {
+		return 'apache' === Settings::get( 'server_mode' ) && (int) get_option( 'gsss_htaccess_active' );
+	}
+
+	/**
+	 * Une règle passe-t-elle par PHP ? Oui hors Apache, si .htaccess n'a pas été écrit, ou si le test
+	 * d'envoi a montré qu'Apache ne la sert pas (drapeau $flag).
+	 *
+	 * @param string $flag Option posée par le test d'envoi.
+	 * @return bool
+	 */
+	public static function served_by_php( $flag ) {
+		return ! self::rules_served() || (int) get_option( $flag );
+	}
+
+	/**
 	 * Retire le bloc, sans test HTTP : retirer des règles ne doit jamais être bloqué.
 	 *
 	 * @return true|\WP_Error

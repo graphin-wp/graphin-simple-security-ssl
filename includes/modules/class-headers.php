@@ -8,6 +8,7 @@
 namespace Graphin\SimpleSecurity\Modules;
 
 use Graphin\SimpleSecurity\CspReports;
+use Graphin\SimpleSecurity\Htaccess;
 use Graphin\SimpleSecurity\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -231,7 +232,7 @@ class Headers extends Module {
 	 * @return bool
 	 */
 	public static function use_php() {
-		return 'apache' !== Settings::get( 'server_mode' ) || ! (int) get_option( 'gsss_htaccess_active' ) || (int) get_option( 'gsss_headers_via_php' );
+		return Htaccess::served_by_php( 'gsss_headers_via_php' );
 	}
 
 	/**
@@ -242,7 +243,7 @@ class Headers extends Module {
 	 */
 	public static function verify_delivery() {
 		$expected = self::simple_headers();
-		if ( empty( $expected ) || 'apache' !== Settings::get( 'server_mode' ) || ! (int) get_option( 'gsss_htaccess_active' ) ) {
+		if ( empty( $expected ) || ! Htaccess::rules_served() ) {
 			delete_option( 'gsss_headers_via_php' );
 			return false;
 		}
