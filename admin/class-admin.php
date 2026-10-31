@@ -16,6 +16,7 @@ use Graphin\SimpleSecurity\Logger;
 use Graphin\SimpleSecurity\Mailer;
 use Graphin\SimpleSecurity\Modules\Hardening;
 use Graphin\SimpleSecurity\Modules\Headers;
+use Graphin\SimpleSecurity\Modules\Ssl;
 use Graphin\SimpleSecurity\Modules\Vulnerabilities;
 use Graphin\SimpleSecurity\Settings;
 use Graphin\SimpleSecurity\VulnScanner;
@@ -70,6 +71,10 @@ class Admin {
 		add_action( 'admin_post_gsss_csp_mode', array( $this, 'csp_mode' ) );
 		add_action( 'wp_ajax_gsss_test_headers', array( $this, 'ajax_test_headers' ) );
 		add_action( 'wp_ajax_gsss_vuln_scan_step', array( $this, 'ajax_vuln_scan_step' ) );
+		add_action( 'admin_post_gsss_ssl_save', array( $this, 'ssl_save' ) );
+		add_action( 'admin_post_gsss_ssl_enable', array( $this, 'ssl_enable' ) );
+		add_action( 'admin_post_gsss_ssl_revert', array( $this, 'ssl_revert' ) );
+		add_action( 'wp_ajax_gsss_ssl_detect', array( $this, 'ajax_ssl_detect' ) );
 	}
 
 	/**
@@ -196,27 +201,28 @@ class Admin {
 	}
 
 	/**
-	 * Droits communs aux actions du module En-têtes (le nonce est vérifié par chaque action).
+	 * Droits communs aux actions admin-post (le nonce est vérifié par chaque action).
 	 *
 	 * @return void
 	 */
-	private function headers_guard() {
+	private function guard() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Accès refusé.', 'graphin-simple-security-ssl' ), '', array( 'response' => 403 ) );
 		}
 	}
 
 	/**
-	 * Retour vers la page En-têtes avec un message.
+	 * Retour vers une page du plugin avec un message.
 	 *
+	 * @param string $page   Slug de la page.
 	 * @param string $notice Code du message.
 	 * @return void
 	 */
-	private function headers_back( $notice ) {
+	private function back( $page, $notice ) {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'        => 'gsss-headers',
+					'page'        => $page,
 					'gsss_notice' => $notice,
 				),
 				admin_url( 'admin.php' )
@@ -232,7 +238,7 @@ class Admin {
 	 */
 	public function save_headers() {
 		check_admin_referer( 'gsss_save_headers' );
-		$this->headers_guard();
+		$this->guard();
 		foreach ( array( 'hdr_nosniff', 'hdr_xfo', 'hdr_referrer', 'hdr_permissions', 'hdr_coop', 'hdr_xss', 'hdr_csp', 'hdr_csp_upgrade' ) as $key ) {
 			Settings::set( $key, empty( $_POST[ $key ] ) ? 0 : 1 );
 		}
@@ -242,10 +248,10 @@ class Admin {
 		Settings::set( 'hdr_perm_features', array_values( array_intersect( Headers::features(), $features ) ) );
 		Logger::log( 'settings_saved', __( 'Réglages En-têtes enregistrés.', 'graphin-simple-security-ssl' ) );
 		if ( is_wp_error( Htaccess::sync() ) ) {
-			$this->headers_back( 'htaccess_error' );
+			$this->back( 'gsss-headers', 'htaccess_error' );
 		}
 		$via_apache = Headers::verify_delivery();
-		$this->headers_back( ( ! $via_apache && 'apache' === Settings::get( 'server_mode' ) && ! empty( Headers::simple_headers() ) ) ? 'headers_php' : 'saved' );
+		$this->back( 'gsss-headers', ( ! $via_apache && 'apache' === Settings::get( 'server_mode' ) && ! empty( Headers::simple_headers() ) ) ? 'headers_php' : 'saved' );
 	}
 
 	/**
@@ -255,13 +261,13 @@ class Admin {
 	 */
 	public function csp_allow() {
 		check_admin_referer( 'gsss_csp_allow' );
-		$this->headers_guard();
+		$this->guard();
 		$id     = isset( $_POST['report'] ) ? preg_replace( '/[^a-f0-9]/', '', sanitize_text_field( wp_unslash( $_POST['report'] ) ) ) : '';
 		$result = CspReports::allow( $id );
 		if ( true === $result ) {
 			Logger::log( 'csp_allowed', __( 'Source ajoutée à la politique CSP.', 'graphin-simple-security-ssl' ), array( 'report' => $id ), 'warning' );
 		}
-		$this->headers_back( true === $result ? 'csp_allowed' : 'csp_' . $result );
+		$this->back( 'gsss-headers', true === $result ? 'csp_allowed' : 'csp_' . $result );
 	}
 
 	/**
@@ -271,9 +277,9 @@ class Admin {
 	 */
 	public function csp_clear() {
 		check_admin_referer( 'gsss_csp_clear' );
-		$this->headers_guard();
+		$this->guard();
 		CspReports::clear();
-		$this->headers_back( 'csp_cleared' );
+		$this->back( 'gsss-headers', 'csp_cleared' );
 	}
 
 	/**
@@ -283,14 +289,14 @@ class Admin {
 	 */
 	public function csp_mode() {
 		check_admin_referer( 'gsss_csp_mode' );
-		$this->headers_guard();
+		$this->guard();
 		$mode = isset( $_POST['mode'] ) && 'enforce' === $_POST['mode'] ? 'enforce' : 'report';
 		if ( 'enforce' === $mode && ! empty( CspReports::all() ) ) {
-			$this->headers_back( 'csp_pending' );
+			$this->back( 'gsss-headers', 'csp_pending' );
 		}
 		Settings::set( 'hdr_csp_mode', $mode );
 		Logger::log( 'csp_mode', 'enforce' === $mode ? __( 'CSP appliquée.', 'graphin-simple-security-ssl' ) : __( 'CSP en rapport seulement.', 'graphin-simple-security-ssl' ), array(), 'warning' );
-		$this->headers_back( 'csp_mode_' . $mode );
+		$this->back( 'gsss-headers', 'csp_mode_' . $mode );
 	}
 
 	/**
@@ -329,6 +335,83 @@ class Admin {
 				'rows'   => $rows,
 			)
 		);
+	}
+
+	/**
+	 * Enregistre les options du module SSL. Si le SSL est actif, les règles suivent ; si elles cassent le site,
+	 * les options précédentes reviennent.
+	 *
+	 * @return void
+	 */
+	public function ssl_save() {
+		check_admin_referer( 'gsss_ssl_save' );
+		$this->guard();
+		$keys     = array( 'ssl_www', 'ssl_mixed_front', 'ssl_mixed_admin', 'ssl_hsts', 'ssl_hsts_subdomains', 'ssl_hsts_preload' );
+		$previous = array_intersect_key( Settings::all(), array_flip( $keys ) );
+		$www      = isset( $_POST['ssl_www'] ) ? sanitize_key( wp_unslash( $_POST['ssl_www'] ) ) : 'none';
+		if ( ! in_array( $www, array( 'none', 'www', 'non-www' ), true ) ) {
+			$www = 'none';
+		}
+		if ( ! Ssl::www_matches( $www ) ) {
+			$this->back( 'gsss-ssl', 'www_mismatch' );
+		}
+		Settings::set( 'ssl_www', $www );
+		foreach ( array_slice( $keys, 1 ) as $key ) {
+			Settings::set( $key, empty( $_POST[ $key ] ) ? 0 : 1 );
+		}
+		Logger::log( 'settings_saved', __( 'Réglages SSL enregistrés.', 'graphin-simple-security-ssl' ) );
+		if ( ! Settings::get( 'ssl_enabled' ) ) {
+			$this->back( 'gsss-ssl', 'saved' );
+		}
+		$sync = Htaccess::sync_or_restore(
+			function () use ( $previous ) {
+				foreach ( $previous as $key => $value ) {
+					Settings::set( $key, $value );
+				}
+			}
+		);
+		if ( is_wp_error( $sync ) && 'gsss_htaccess_rollback' === $sync->get_error_code() ) {
+			$this->back( 'gsss-ssl', 'ssl_rollback' );
+		}
+		Ssl::verify_delivery();
+		$this->back( 'gsss-ssl', is_wp_error( $sync ) ? 'htaccess_error' : 'saved' );
+	}
+
+	/**
+	 * Active le SSL. Un cookie de connexion sécurisé est posé pour rester connecté une fois en https.
+	 *
+	 * @return void
+	 */
+	public function ssl_enable() {
+		check_admin_referer( 'gsss_ssl_enable' );
+		$this->guard();
+		$result = Ssl::enable();
+		$this->back( 'gsss-ssl', is_wp_error( $result ) ? 'ssl_' . $result->get_error_code() : 'ssl_enabled' );
+	}
+
+	/**
+	 * Revient en HTTP. Un cookie de connexion non sécurisé est posé pour rester connecté en http.
+	 *
+	 * @return void
+	 */
+	public function ssl_revert() {
+		check_admin_referer( 'gsss_ssl_revert' );
+		$this->guard();
+		Ssl::revert();
+		$this->back( 'gsss-ssl', 'ssl_reverted' );
+	}
+
+	/**
+	 * Relance la détection du certificat (AJAX).
+	 *
+	 * @return void
+	 */
+	public function ajax_ssl_detect() {
+		check_ajax_referer( 'gsss_admin', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Accès refusé.', 'graphin-simple-security-ssl' ) ), 403 );
+		}
+		wp_send_json_success( Ssl::detect() );
 	}
 
 	/**

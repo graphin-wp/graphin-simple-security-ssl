@@ -87,6 +87,28 @@
 		} );
 	}
 
+	var detectButton = document.getElementById( 'gsss-ssl-detect' );
+	var detectStatus = document.getElementById( 'gsss-ssl-detect-status' );
+	if ( detectButton && detectStatus ) {
+		detectButton.addEventListener( 'click', function () {
+			detectButton.disabled = true;
+			detectStatus.textContent = cfg.i18n.sending;
+			post( 'gsss_ssl_detect' )
+				.then( function ( json ) {
+					if ( json && json.success ) {
+						window.location.reload();
+						return;
+					}
+					detectStatus.textContent = json && json.data && json.data.message ? json.data.message : cfg.i18n.error;
+					detectButton.disabled = false;
+				} )
+				.catch( function () {
+					detectStatus.textContent = cfg.i18n.error;
+					detectButton.disabled = false;
+				} );
+		} );
+	}
+
 	Array.prototype.forEach.call( document.querySelectorAll( '[data-gsss-confirm-msg]' ), function ( form ) {
 		form.addEventListener( 'submit', function ( event ) {
 			if ( ! window.confirm( form.getAttribute( 'data-gsss-confirm-msg' ) ) ) {
