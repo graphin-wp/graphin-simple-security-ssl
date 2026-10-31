@@ -1,5 +1,12 @@
 # Journal des modifications
 
+## 1.0.0 (non publiée)
+
+- Suppression du plugin (`uninstall.php`) : retire le bloc .htaccess et ses sauvegardes, toutes les options et transients `gsss_`, les tables du journal et des tentatives de connexion, les métadonnées 2FA des utilisateurs et les crons. Les adresses du site restent en https.
+- .htaccess : le drapeau « règles en place » suit maintenant chaque écriture du fichier principal (enregistrement, désactivation, mode secours). Avant, après une désactivation ou un passage en mode secours, le plugin croyait les règles toujours écrites et n'envoyait rien par PHP jusqu'au prochain enregistrement.
+- Release : GitHub Action sur tag `vX.Y.Z` (contrôle de la version du tag, syntaxe PHP 7.4, PHPCS, construction du zip, release avec le zip en asset et les notes tirées de ce journal).
+- `bin/build-zip.sh` construit le même zip en local et refuse un zip sans Plugin Update Checker ou avec des fichiers de développement. `.distignore` complété.
+
 ## 0.10.0 (non publiée)
 
 - Tableau de bord : score de sécurité (part des points recommandés en place, SSL compris), liste « À faire » avec un lien qui mène à l'option concernée, état du certificat et de son expiration, dernier scan de vulnérabilités, version du plugin et mise à jour disponible.
