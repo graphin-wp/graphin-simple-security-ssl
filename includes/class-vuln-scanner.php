@@ -243,7 +243,9 @@ class VulnScanner {
 
 	/**
 	 * La version installée est-elle concernée par cette faille ?
-	 * Opérateur inconnu : on considère la version concernée (mieux vaut un faux positif).
+	 * WPVulnerability donne une borne basse et une borne haute, chacune avec un opérateur :
+	 * ge, gt, lt, le, et aussi eq (une seule version touchée) ou ne.
+	 * Opérateur inconnu : la borne est ignorée et la version reste concernée (mieux vaut un faux positif).
 	 *
 	 * @param string $version Version installée.
 	 * @param array  $vuln    Faille normalisée.
@@ -255,6 +257,8 @@ class VulnScanner {
 			'gt' => '>',
 			'lt' => '<',
 			'le' => '<=',
+			'eq' => '==',
+			'ne' => '!=',
 		);
 		if ( null !== $vuln['min'] && isset( $map[ $vuln['min_op'] ] ) && ! version_compare( $version, $vuln['min'], $map[ $vuln['min_op'] ] ) ) {
 			return false;

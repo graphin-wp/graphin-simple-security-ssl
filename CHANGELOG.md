@@ -1,5 +1,11 @@
 # Journal des modifications
 
+## 1.0.1 (non publiée)
+
+- Vulnérabilités : les opérateurs `eq` (une seule version touchée) et `ne` de WPVulnerability sont maintenant reconnus. Avant, une borne `eq` était ignorée et la faille s'appliquait à toutes les versions. Exemple : la faille CVE-2022-50972, qui ne touche que WooCommerce 7.1.0, était signalée comme critique sur WooCommerce 11.3.0. Un opérateur inconnu laisse toujours la version concernée.
+- Après la mise à jour, l'ancienne alerte reste affichée jusqu'au scan suivant (quotidien) ou jusqu'à un clic sur « Scanner maintenant ».
+- `bin/test-vuln-scanner.php` : test en ligne de commande des bornes de version (`php bin/test-vuln-scanner.php`), hors du zip.
+
 ## 1.0.0 (non publiée)
 
 - Suppression du plugin (`uninstall.php`) : retire le bloc .htaccess et ses sauvegardes, toutes les options et transients `gsss_`, les tables du journal et des tentatives de connexion, les métadonnées 2FA des utilisateurs et les crons. Les adresses du site restent en https.
