@@ -7,7 +7,7 @@
  * @package Graphin\SimpleSecurity
  */
 
-// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.Security.EscapeOutput.OutputNotEscaped
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
 
 if ( 'cli' !== PHP_SAPI ) {
 	exit( 1 );
